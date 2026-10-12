@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { getSessionEmployee } from "@/lib/auth";
 import { canEditAssignmentCatalog } from "@/lib/invariants";
 
-const mono = JetBrains_Mono({
-  subsets: ["latin", "cyrillic"],
+// JetBrains Mono v2.304 лежит в репозитории: за корпоративным прокси next/font/google не скачивает шрифт.
+const mono = localFont({
+  src: [
+    { path: "./fonts/JetBrainsMono-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/JetBrainsMono-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/JetBrainsMono-Bold.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-mono",
   display: "swap",
 });

@@ -122,6 +122,30 @@ test("ручное раскрытие одной карточки не раск�
   await expect(page.getByRole("button", { name: "Развернуть все" })).toHaveCount(1);
 });
 
+test("шрифт страницы — JetBrains Mono из файлов приложения, без Google Fonts", async ({ page }) => {
+  const fontRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.resourceType() === "font" || /fonts\.(googleapis|gstatic)\.com/.test(request.url())) {
+      fontRequests.push(request.url());
+    }
+  });
+  await page.goto("/");
+
+  const font = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const unquote = (name: string) => name.trim().replace(/^['"]|['"]$/g, "");
+    const family = unquote(getComputedStyle(document.body).fontFamily.split(",")[0]);
+    const loaded = [...document.fonts].filter((face) => face.status === "loaded" && unquote(face.family) === family);
+    return { family, loaded: loaded.length };
+  });
+  expect(font.family).not.toMatch(/Fallback/);
+  expect(font.loaded).toBeGreaterThan(0);
+  expect(fontRequests.length).toBeGreaterThan(0);
+  for (const url of fontRequests) {
+    expect(new URL(url).pathname).toMatch(/^\/_next\/static\/media\/[^/]+\.woff2$/);
+  }
+});
+
 test("несуществующая должность — 404", async ({ page }) => {
   const response = await page.goto("/jobs/no-such-job");
   expect(response?.status()).toBe(404);
