@@ -18,12 +18,12 @@ async function login(page: Page, account: { login: string; password: string }) {
   await expect(page).toHaveURL(/\/me$/);
 }
 
-function materials(page: Page) {
-  return page.getByRole("group", { name: `Материалы: ${COMPETENCY.name}` });
+function materials(page: Page, competencyName = COMPETENCY.name) {
+  return page.getByRole("group", { name: `Материалы: ${competencyName}` });
 }
 
-async function addLink(page: Page, kind: string, title: string, url: string) {
-  const group = materials(page);
+async function addLink(page: Page, kind: string, title: string, url: string, competencyName = COMPETENCY.name) {
+  const group = materials(page, competencyName);
   // В подпись <select> внутри <label> попадает текст вариантов, поэтому подпись сверяется с началом строки.
   await group.getByLabel(/^Вид/).selectOption(kind);
   await group.getByLabel("Название ссылки").fill(title);
@@ -70,6 +70,35 @@ test("адрес не http(s) или пустое название — ошиб�
 
   await page.reload();
   await expect(materials(page).getByRole("link")).toHaveCount(1);
+});
+
+test("удалённая компетенция уносит свои ссылки: пересозданная с тем же id — без материалов", async ({ page }) => {
+  const temp = { id: "e2e-temp-competency", name: "Временная компетенция E2E" };
+  await login(page, E2E_ADMIN);
+  await page.goto("/admin/competencies");
+
+  const create = page.locator("form", { has: page.getByRole("button", { name: "Добавить / сохранить" }) });
+  const createTemp = async () => {
+    await create.getByPlaceholder("id (латиница)").fill(temp.id);
+    await create.getByPlaceholder("Название", { exact: true }).fill(temp.name);
+    await create.getByRole("button", { name: "Добавить / сохранить" }).click();
+    await expect(materials(page, temp.name)).toBeVisible();
+  };
+
+  await createTemp();
+  await addLink(page, "video", "Видео к временной", "https://example.org/temp", temp.name);
+  await expect(materials(page, temp.name).getByRole("link", { name: "Видео к временной" })).toBeVisible();
+
+  await page
+    .getByRole("listitem")
+    .filter({ has: materials(page, temp.name) })
+    .getByRole("button", { name: "Удалить", exact: true })
+    .click();
+  await expect(materials(page, temp.name)).toHaveCount(0);
+
+  await createTemp();
+  await page.reload();
+  await expect(materials(page, temp.name).getByRole("link")).toHaveCount(0);
 });
 
 test("админ заводит сотрудника и ИПР с заданием по компетенции со ссылкой", async ({ page }) => {
