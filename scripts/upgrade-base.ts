@@ -118,8 +118,8 @@ function main() {
 
       db.insert(employeeCompetencyMarks)
         .values([
-          { employeeId: "emp-junior", competencyId: skills[0].competencyId, status: "has", updatedAt: t },
-          { employeeId: "emp-junior", competencyId: skills[1].competencyId, status: "in_progress", updatedAt: t },
+          { employeeId: "emp-junior", competencyId: skills[0].competencyId, status: "has", note: "Уже разбирал", updatedAt: t },
+          { employeeId: "emp-junior", competencyId: skills[1].competencyId, status: "in_progress", note: "", updatedAt: t },
         ])
         .run();
 

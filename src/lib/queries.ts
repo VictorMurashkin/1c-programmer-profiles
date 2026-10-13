@@ -19,7 +19,7 @@ import {
 } from "@/db/schema";
 import { sectionForType } from "@/lib/invariants";
 
-const SCHEMA_TICK = 5;
+const SCHEMA_TICK = 6;
 let appliedTick = 0;
 export function ensureSchema() {
   if (appliedTick !== SCHEMA_TICK) {
@@ -216,11 +216,13 @@ export type MarkableCompetency = {
   name: string;
   section: "technical" | "personal";
   onlyInTarget: boolean;
+  criteria: string | null;
 };
 
 /**
- * Навыки, которые сотрудник может пометить для себя (ADR 0007): профиль текущей должности
+ * Навыки, которые сотрудник может пометить впервые (ADR 0007): профиль текущей должности
  * и профиль цели активного ИПР, без обязанностей. `onlyInTarget` — навыка нет в текущей должности.
+ * Критерий берётся из текущей должности; у навыка только из цели — из её профиля.
  */
 export function markableCompetencies(employeeId: string, jobId: string): MarkableCompetency[] {
   const rows = new Map<string, MarkableCompetency>();
@@ -229,11 +231,13 @@ export function markableCompetencies(employeeId: string, jobId: string): Markabl
     if (!grouped) return;
     for (const row of grouped.technical.concat(grouped.personal)) {
       if (rows.has(row.competency.id)) continue;
+      const criteria = row.skill.criteria?.trim() ? row.skill.criteria : null;
       rows.set(row.competency.id, {
         id: row.competency.id,
         name: row.competency.name,
         section: sectionForType(row.competency.type) === "technical" ? "technical" : "personal",
         onlyInTarget,
+        criteria,
       });
     }
   };
@@ -243,15 +247,62 @@ export function markableCompetencies(employeeId: string, jobId: string): Markabl
   return [...rows.values()].sort((x, y) => x.name.localeCompare(y.name, "ru"));
 }
 
-/** Личные пометки сотрудника: компетенция → статус. */
-export function listCompetencyMarks(employeeId: string) {
+export type CompetencyMarkView = MarkableCompetency & {
+  status: CompetencyMarkStatus | "";
+  note: string;
+  outside: boolean;
+};
+
+export type CompetencyMarkSummary = {
+  unmarked: number;
+  has: number;
+  lacks: number;
+  inProgress: number;
+};
+
+/** Текущий набор, уже стоящие пометки вне него и сводка только по текущему набору (ADR 0008). */
+export function competencyMarkViews(employeeId: string, jobId: string) {
   ensureSchema();
-  const rows = getDb()
-    .select()
+  const currentRows = markableCompetencies(employeeId, jobId);
+  const stored = getDb()
+    .select({
+      competencyId: employeeCompetencyMarks.competencyId,
+      status: employeeCompetencyMarks.status,
+      note: employeeCompetencyMarks.note,
+      name: competencies.name,
+      type: competencies.type,
+    })
     .from(employeeCompetencyMarks)
+    .innerJoin(competencies, eq(employeeCompetencyMarks.competencyId, competencies.id))
     .where(eq(employeeCompetencyMarks.employeeId, employeeId))
     .all();
-  return new Map<string, CompetencyMarkStatus>(rows.map((row) => [row.competencyId, row.status]));
+  const byId = new Map(stored.map((row) => [row.competencyId, row]));
+  const current: CompetencyMarkView[] = currentRows.map((row) => {
+    const mark = byId.get(row.id);
+    return { ...row, status: mark?.status ?? "", note: mark?.note ?? "", outside: false };
+  });
+  const allowed = new Set(currentRows.map((row) => row.id));
+  const outside: CompetencyMarkView[] = stored
+    .filter((row) => !allowed.has(row.competencyId) && row.type !== "duty")
+    .map((row) => ({
+      id: row.competencyId,
+      name: row.name,
+      section: sectionForType(row.type) === "technical" ? ("technical" as const) : ("personal" as const),
+      onlyInTarget: false,
+      criteria: null,
+      status: row.status,
+      note: row.note ?? "",
+      outside: true,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  const summary: CompetencyMarkSummary = { unmarked: 0, has: 0, lacks: 0, inProgress: 0 };
+  for (const row of current) {
+    if (row.status === "has") summary.has += 1;
+    else if (row.status === "lacks") summary.lacks += 1;
+    else if (row.status === "in_progress") summary.inProgress += 1;
+    else summary.unmarked += 1;
+  }
+  return { current, outside, summary };
 }
 
 export type CompetencyLink = typeof competencyLinks.$inferSelect;
