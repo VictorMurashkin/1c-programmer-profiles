@@ -1,8 +1,26 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { E2E_ADMIN } from "./env";
+import { E2E_ADMIN, E2E_ADMIN_PASSWORD } from "./env";
 
-// Файл идёт после session.spec.ts: админ там уже создан. Шаги делят одну базу.
+// Шаги делят одну базу. Админ создаётся здесь, если его ещё нет.
 test.describe.configure({ mode: "serial" });
+
+test.beforeAll(async ({ browser }) => {
+  const page = await browser.newPage();
+  try {
+    await page.goto("/login");
+    const form = page.locator("#bootstrap-admin");
+    if ((await form.count()) === 0) return;
+    await form.getByLabel("Пароль из .env.local").fill(E2E_ADMIN_PASSWORD);
+    await form.getByLabel("Логин").fill(E2E_ADMIN.login);
+    await form.getByLabel("Имя").fill(E2E_ADMIN.name);
+    await form.getByLabel("Должность").selectOption("team-lead");
+    await form.getByLabel("Пароль учётки").fill(E2E_ADMIN.password);
+    await form.getByRole("button", { name: "Создать первого админа" }).click();
+    await expect(page).toHaveURL(/\/me$/);
+  } finally {
+    await page.close();
+  }
+});
 
 const STAFF = { login: "e2e.plain", name: "Обычный E2E", password: "e2e-plain-password" };
 let staffPath = "";
