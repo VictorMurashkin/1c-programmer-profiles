@@ -101,9 +101,11 @@ export default async function PersonPage({ params }: { params: Promise<{ employe
               Новый пароль
               <input className="field" type="password" name="password" />
             </label>
-            <label className="lbl flex items-center gap-2">
-              <input type="checkbox" name="isAdmin" value="1" defaultChecked={row.isAdmin === 1} />
+            <label className="lbl">
               Админ
+              <span className="field block">
+                <input type="checkbox" name="isAdmin" value="1" defaultChecked={row.isAdmin === 1} />
+              </span>
             </label>
             <button className="btn-primary w-fit" type="submit">
               Сохранить
