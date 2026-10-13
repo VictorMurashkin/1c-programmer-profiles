@@ -32,11 +32,24 @@ async function fillNote(note: ReturnType<Page["getByLabel"]>, value: string) {
 }
 
 async function saveMark(page: Page, run: () => Promise<unknown>) {
-  const posted = page.waitForResponse(
-    (response) => response.request().method() === "POST",
-  );
-  await run();
-  await posted;
+  const pending = new Set<Promise<void>>();
+  const track = (request: { method(): string; response(): Promise<unknown> }) => {
+    if (request.method() !== "POST") return;
+    const done = request.response().then(
+      () => undefined,
+      () => undefined,
+    );
+    pending.add(done);
+    void done.finally(() => pending.delete(done));
+  };
+  page.on("request", track);
+  try {
+    await run();
+    await expect.poll(() => pending.size).toBeGreaterThan(0);
+    while (pending.size > 0) await Promise.all([...pending]);
+  } finally {
+    page.off("request", track);
+  }
 }
 
 test("админ заводит сотрудника на младшего программиста и ИПР на программиста", async ({ page }) => {
@@ -98,6 +111,7 @@ test("статус и пояснение пишутся без кнопки и �
   const note = page.getByLabel("Пояснение: Обучаемость");
   await saveMark(page, () => fillNote(note, "смотрю ИТС"));
   await saveMark(page, () => page.getByLabel("Статус: Автоматизированное тестирование").selectOption("in_progress"));
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toHaveValue("in_progress");
 
   await page.reload();
   await expect(page.getByLabel("Статус: Обучаемость")).toHaveValue("has");

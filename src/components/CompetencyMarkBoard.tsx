@@ -38,6 +38,7 @@ function isMarkStatus(value: string): value is MarkStatus {
 function MarkRow({ row }: { row: MarkBoardRow }) {
   const formRef = useRef<HTMLFormElement>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
+  const savedNote = useRef(row.note);
   const [status, setStatus] = useState(row.status);
   const [note, setNote] = useState(row.note);
   const [state, submitMark, pending] = useActionState(setCompetencyMarkAction, null);
@@ -49,6 +50,7 @@ function MarkRow({ row }: { row: MarkBoardRow }) {
     data.set("competencyId", competency instanceof HTMLInputElement ? competency.value : row.id);
     data.set("status", nextStatus);
     data.set("note", nextStatus ? nextNote : "");
+    savedNote.current = nextStatus ? nextNote : "";
     submitMark(data);
   }
 
@@ -58,6 +60,7 @@ function MarkRow({ row }: { row: MarkBoardRow }) {
   }, [row.status]);
 
   useEffect(() => {
+    savedNote.current = row.note;
     setNote(row.note);
   }, [row.note]);
 
@@ -106,7 +109,7 @@ function MarkRow({ row }: { row: MarkBoardRow }) {
               onBlur={(event) => {
                 const value = event.currentTarget.value;
                 setNote(value);
-                if (value !== row.note) submit(status, value);
+                if (value !== savedNote.current) submit(status, value);
               }}
             />
           ) : null}
