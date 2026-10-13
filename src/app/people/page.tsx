@@ -76,9 +76,12 @@ export default async function PeoplePage() {
               ))}
             </select>
           </label>
-          <label className="lbl flex items-center gap-2">
-            <input type="checkbox" name="isAdmin" value="1" />
-            Админ справочника
+          <label className="lbl">
+            Админ
+            <select className="field" name="isAdmin" defaultValue="">
+              <option value="">нет</option>
+              <option value="1">да</option>
+            </select>
           </label>
           <button className="btn-primary md:col-span-2 w-fit" type="submit">
             Создать
