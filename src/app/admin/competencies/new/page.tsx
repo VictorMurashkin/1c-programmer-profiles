@@ -27,6 +27,7 @@ export default async function NewCompetencyPage() {
         successPath="/admin/competencies/{id}"
         className="panel panel-pad grid gap-3 text-sm md:grid-cols-2"
       >
+        <input type="hidden" name="create" value="1" />
         <CompetencyFields roots={roots} />
         <button className="btn-primary w-fit" type="submit">
           Создать

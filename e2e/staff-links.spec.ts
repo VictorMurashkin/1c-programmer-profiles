@@ -80,6 +80,21 @@ test("адрес не http(s) или пустое название — ошиб�
   await expect(materials(page).getByRole("link")).toHaveCount(1);
 });
 
+test("создание с занятым id не перезаписывает компетенцию", async ({ page }) => {
+  await login(page, E2E_ADMIN);
+  await page.goto("/admin/competencies/new");
+  const create = page.locator("form", { has: page.getByRole("button", { name: "Создать" }) });
+  await create.getByLabel("Идентификатор").fill(COMPETENCY.id);
+  await create.getByLabel("Название", { exact: true }).fill("Подмена имени");
+  await create.getByRole("button", { name: "Создать" }).click();
+  await expect(create.getByRole("alert")).toHaveText("Идентификатор уже занят");
+  await expect(page).toHaveURL(/\/admin\/competencies\/new$/);
+
+  await page.goto("/admin/competencies");
+  await expect(page.getByRole("link", { name: COMPETENCY.name, exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Подмена имени" })).toHaveCount(0);
+});
+
 test("удалённая компетенция уносит свои ссылки: пересозданная с тем же id — без материалов", async ({ page }) => {
   const temp = { id: "e2e-temp-competency", name: "Временная компетенция E2E" };
   await login(page, E2E_ADMIN);

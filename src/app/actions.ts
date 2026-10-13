@@ -30,6 +30,8 @@ import type { ActionResult } from "@/lib/action-result";
 function revalidateCompetencyAdmin(id?: string) {
   revalidatePath("/admin/competencies");
   if (id) revalidatePath(`/admin/competencies/${id}`);
+  revalidatePath("/jobs/[jobId]/profile", "page");
+  revalidatePath("/idps/[idpId]", "page");
 }
 
 function isNextControlFlow(error: unknown) {
@@ -184,11 +186,13 @@ export async function saveCompetencyAction(
     const description = String(formData.get("description") ?? "").trim() || null;
     if (!id || !name) throw new InvariantError("Нужны id и название");
     if (id === "new") throw new InvariantError("Идентификатор new зарезервирован");
+    const creating = formData.get("create") === "1";
     assertCompetencyTree(parentId, type);
     assertCompetencyNameUnique(id, parentId, name);
     const db = getDb();
     const existing = db.select().from(competencies).where(eq(competencies.id, id)).get();
     if (existing) {
+      if (creating) throw new InvariantError("Идентификатор уже занят");
       assertTypeChangeAllowed(id, type);
       db.update(competencies)
         .set({ name, type, parentId, description, updatedAt: now() })
