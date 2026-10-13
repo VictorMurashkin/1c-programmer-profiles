@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { setCompetencyMarkAction } from "@/app/people-actions";
 
 type MarkStatus = "" | "has" | "lacks" | "in_progress";
@@ -51,7 +51,9 @@ function MarkRow({ row }: { row: MarkBoardRow }) {
     data.set("status", nextStatus);
     data.set("note", nextStatus ? nextNote : "");
     savedNote.current = nextStatus ? nextNote : "";
-    submitMark(data);
+    startTransition(() => {
+      submitMark(data);
+    });
   }
 
   useEffect(() => {

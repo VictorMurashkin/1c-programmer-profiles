@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request } from "@playwright/test";
 import { E2E_ADMIN } from "./env";
 
 // Файл идёт после session.spec.ts (алфавит, один воркер): админ там уже создан.
@@ -32,23 +32,29 @@ async function fillNote(note: ReturnType<Page["getByLabel"]>, value: string) {
 }
 
 async function saveMark(page: Page, run: () => Promise<unknown>) {
-  const pending = new Set<Promise<void>>();
-  const track = (request: { method(): string; response(): Promise<unknown> }) => {
+  const done: Promise<void>[] = [];
+  const onRequest = (request: Request) => {
     if (request.method() !== "POST") return;
-    const done = request.response().then(
-      () => undefined,
-      () => undefined,
+    done.push(
+      new Promise((resolve) => {
+        const finish = (finished: Request) => {
+          if (finished !== request) return;
+          page.off("requestfinished", finish);
+          page.off("requestfailed", finish);
+          resolve();
+        };
+        page.on("requestfinished", finish);
+        page.on("requestfailed", finish);
+      }),
     );
-    pending.add(done);
-    void done.finally(() => pending.delete(done));
   };
-  page.on("request", track);
+  page.on("request", onRequest);
   try {
     await run();
-    await expect.poll(() => pending.size).toBeGreaterThan(0);
-    while (pending.size > 0) await Promise.all([...pending]);
+    await expect.poll(() => done.length).toBeGreaterThan(0);
+    await Promise.all(done);
   } finally {
-    page.off("request", track);
+    page.off("request", onRequest);
   }
 }
 
