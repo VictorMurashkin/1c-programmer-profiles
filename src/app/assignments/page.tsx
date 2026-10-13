@@ -1,95 +1,83 @@
 import { redirect } from "next/navigation";
-import { ActionForm } from "@/components/ActionForm";
-import { archiveAssignmentAction, saveAssignmentAction } from "@/app/idp-actions";
 import { getSessionEmployee } from "@/lib/auth";
 import { canEditAssignmentCatalog } from "@/lib/invariants";
-import { assignmentCompetencies, getCompetency, listIdpAssignments } from "@/lib/queries";
+import { listCompetencies, listIdpAssignments } from "@/lib/queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default async function AssignmentsPage() {
+export default async function AssignmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ competency?: string }>;
+}) {
   const actor = await getSessionEmployee();
   if (!actor) redirect("/login");
   if (!canEditAssignmentCatalog(actor)) redirect("/idps");
-  const competencies = assignmentCompetencies();
-  const items = listIdpAssignments();
+  const { competency = "" } = await searchParams;
+  const names = new Map(listCompetencies().map((item) => [item.id, item.name]));
+  const items = listIdpAssignments().map((row) => ({
+    id: row.id,
+    name: row.name,
+    competencyId: row.competencyId,
+    competencyName: names.get(row.competencyId) ?? row.competencyId,
+    archived: row.archived === 1,
+  }));
+  const competencies = [...new Map(items.map((item) => [item.competencyId, item.competencyName])).entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  const selected = competencies.some((item) => item.id === competency) ? competency : "";
+  const visible = selected ? items.filter((item) => item.competencyId === selected) : items;
 
   return (
     <div className="space-y-6">
-      <div className="page-kicker">
-        <span className="pulse-dot" />
-        <h1 className="page-title">Задания ИПР</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="page-kicker">
+          <span className="pulse-dot" />
+          <h1 className="page-title">Задания ИПР</h1>
+        </div>
+        <a href="/assignments/new" className="btn-primary">
+          Новое задание
+        </a>
       </div>
-      <ActionForm action={saveAssignmentAction} className="panel panel-pad grid gap-3 text-sm md:grid-cols-2">
-        <label className="lbl">
-          Компетенция
-          <select className="field" name="competencyId" required>
-            {competencies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+      {items.length === 0 ? (
+        <ul className="panel">
+          <li className="list-row muted">Заданий ещё нет</li>
+        </ul>
+      ) : (
+        <div className="space-y-4">
+          <form action="/assignments" className="flex flex-wrap items-end gap-3">
+            <label className="lbl">
+              Компетенция
+              <select className="field" name="competency" aria-label="Фильтр компетенции" defaultValue={selected}>
+                <option value="">все</option>
+                {competencies.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="btn" type="submit">
+              Показать
+            </button>
+          </form>
+          {visible.length === 0 ? <p className="muted text-sm">Ничего не найдено.</p> : null}
+          <ul className="panel">
+            {visible.map((row) => (
+              <li key={row.id} className="list-row">
+                <div>
+                  <a href={`/assignments/${encodeURIComponent(row.id)}`} className="link-accent font-medium">
+                    {row.name}
+                  </a>
+                  <div className="mt-1 text-xs muted">{row.competencyName}</div>
+                </div>
+                {row.archived ? <span className="chip">скрыто</span> : null}
+              </li>
             ))}
-          </select>
-        </label>
-        <label className="lbl">
-          Название
-          <input className="field" name="name" required />
-        </label>
-        <label className="lbl">
-          Узнать
-          <textarea className="field" name="learnText" rows={4} required />
-        </label>
-        <label className="lbl">
-          Проверить
-          <textarea className="field" name="verifyText" rows={4} required />
-        </label>
-        <button className="btn-primary w-fit" type="submit">
-          Добавить
-        </button>
-      </ActionForm>
-      <ul className="space-y-2 text-sm">
-        {items.map((row) => {
-          const competency = getCompetency(row.competencyId);
-          return (
-            <li key={row.id} className="panel panel-pad space-y-3">
-              <div className="flex flex-wrap items-center gap-2 font-medium">
-                {row.name}
-                <span className="chip">{competency?.name ?? row.competencyId}</span>
-                {row.archived === 1 ? <span className="chip">скрыто</span> : null}
-              </div>
-              {row.archived === 0 ? (
-                <ActionForm action={saveAssignmentAction} className="grid gap-2 md:grid-cols-2">
-                  <input type="hidden" name="id" value={row.id} />
-                  <input type="hidden" name="competencyId" value={row.competencyId} />
-                  <label className="lbl md:col-span-2">
-                    Название
-                    <input className="field" name="name" defaultValue={row.name} />
-                  </label>
-                  <label className="lbl">
-                    Узнать
-                    <textarea className="field" name="learnText" rows={3} defaultValue={row.learnText} />
-                  </label>
-                  <label className="lbl">
-                    Проверить
-                    <textarea className="field" name="verifyText" rows={3} defaultValue={row.verifyText} />
-                  </label>
-                  <button className="btn w-fit" type="submit">
-                    Сохранить
-                  </button>
-                </ActionForm>
-              ) : null}
-              <ActionForm action={archiveAssignmentAction}>
-                <input type="hidden" name="id" value={row.id} />
-                <button className={row.archived === 1 ? "btn" : "btn-quiet"} type="submit">
-                  {row.archived === 1 ? "Вернуть" : "Скрыть"}
-                </button>
-              </ActionForm>
-            </li>
-          );
-        })}
-        {items.length === 0 ? <li className="muted">Заданий ещё нет</li> : null}
-      </ul>
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -86,7 +86,8 @@ export function ActionForm({
     async (prev: ActionResult, formData: FormData) => {
       const result = await action(prev, formData);
       if (!result?.error && successPath) {
-        const href = successLocation(successPath, formData);
+        const fromAction = result && "href" in result ? result.href : "";
+        const href = fromAction || successLocation(successPath, formData);
         // Переход здесь, а не в эффекте: после удаления страница уже 404 и форма размонтирована.
         if (href) window.location.assign(href);
       }

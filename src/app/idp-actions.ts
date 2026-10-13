@@ -399,9 +399,10 @@ export async function saveAssignmentAction(_prev: ActionResult, formData: FormDa
     const db = getDb();
     const t = now();
     if (!idRaw) {
-      insertCatalogAssignment(competencyId, texts);
+      const created = insertCatalogAssignment(competencyId, texts);
       revalidatePath("/assignments");
-      return null;
+      revalidatePath(`/assignments/${created.id}`);
+      return { href: `/assignments/${created.id}` };
     }
     const existing = getIdpAssignment(idRaw);
     if (!existing) throw new InvariantError("Задание не найдено");
@@ -414,6 +415,7 @@ export async function saveAssignmentAction(_prev: ActionResult, formData: FormDa
       .where(eq(idpAssignments.id, idRaw))
       .run();
     revalidatePath("/assignments");
+    revalidatePath(`/assignments/${idRaw}`);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return saveAssignmentAction(_prev, formData, true);
@@ -437,6 +439,7 @@ export async function archiveAssignmentAction(_prev: ActionResult, formData: For
       .where(eq(idpAssignments.id, id))
       .run();
     revalidatePath("/assignments");
+    revalidatePath(`/assignments/${id}`);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return archiveAssignmentAction(_prev, formData, true);
