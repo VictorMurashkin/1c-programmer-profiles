@@ -190,4 +190,6 @@ test("чужой идентификатор — 404", async ({ page }) => {
   await login(page, E2E_ADMIN);
   const response = await page.goto("/assignments/no-such-assignment");
   expect(response?.status()).toBe(404);
+  const broken = await page.goto("/assignments/%25");
+  expect(broken?.status()).toBe(404);
 });

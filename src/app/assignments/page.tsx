@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionEmployee } from "@/lib/auth";
 import { canEditAssignmentCatalog } from "@/lib/invariants";
-import { getCompetency, listIdpAssignments } from "@/lib/queries";
+import { listCompetencies, listIdpAssignments } from "@/lib/queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,11 +15,12 @@ export default async function AssignmentsPage({
   if (!actor) redirect("/login");
   if (!canEditAssignmentCatalog(actor)) redirect("/idps");
   const { competency = "" } = await searchParams;
+  const names = new Map(listCompetencies().map((item) => [item.id, item.name]));
   const items = listIdpAssignments().map((row) => ({
     id: row.id,
     name: row.name,
     competencyId: row.competencyId,
-    competencyName: getCompetency(row.competencyId)?.name ?? row.competencyId,
+    competencyName: names.get(row.competencyId) ?? row.competencyId,
     archived: row.archived === 1,
   }));
   const competencies = [...new Map(items.map((item) => [item.competencyId, item.competencyName])).entries()]

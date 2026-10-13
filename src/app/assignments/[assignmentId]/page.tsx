@@ -13,7 +13,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
   if (!actor) redirect("/login");
   if (!canEditAssignmentCatalog(actor)) redirect("/idps");
   const { assignmentId } = await params;
-  const row = getIdpAssignment(decodeURIComponent(assignmentId));
+  const row = getIdpAssignment(assignmentId);
   if (!row) notFound();
   const competency = getCompetency(row.competencyId);
 
