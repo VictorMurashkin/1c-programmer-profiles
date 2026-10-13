@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS employee_competency_marks (
   employee_id TEXT NOT NULL REFERENCES employees(id),
   competency_id TEXT NOT NULL REFERENCES competencies(id),
   status TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
   updated_at INTEGER NOT NULL,
   UNIQUE (employee_id, competency_id)
 );
@@ -286,6 +287,7 @@ function rebuildIdpItems() {
 
 export function migrate() {
   getSqlite().exec(DDL);
+  addColumnIfMissing("employee_competency_marks", "note", "note TEXT NOT NULL DEFAULT ''");
   ensureCompetenciesParentFk();
   ensureParentNameIndex();
   ensureIdpActiveIndex();

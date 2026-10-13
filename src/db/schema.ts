@@ -153,6 +153,7 @@ export const employeeCompetencyMarks = sqliteTable(
       .notNull()
       .references(() => competencies.id),
     status: text("status", { enum: ["has", "lacks", "in_progress"] }).notNull(),
+    note: text("note").notNull().default(""),
     updatedAt: integer("updated_at").notNull(),
   },
   (t) => [uniqueIndex("employee_competency_marks_unique").on(t.employeeId, t.competencyId)],
