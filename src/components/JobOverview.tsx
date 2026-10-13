@@ -47,7 +47,7 @@ export function NextJobs({ jobId, admin }: { jobId: string; admin: boolean }) {
               <ActionForm action={deleteTransitionAction}>
                 <input type="hidden" name="fromJobId" value={tr.fromJobId} />
                 <input type="hidden" name="toJobId" value={tr.toJobId} />
-                <button className="btn-quiet" type="submit">
+                <button className="btn-danger" type="submit">
                   Убрать
                 </button>
               </ActionForm>

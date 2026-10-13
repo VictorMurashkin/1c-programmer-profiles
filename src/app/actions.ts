@@ -27,6 +27,11 @@ import {
 import { getCompetency } from "@/lib/queries";
 import type { ActionResult } from "@/lib/action-result";
 
+function revalidateCompetencyAdmin(id?: string) {
+  revalidatePath("/admin/competencies");
+  if (id) revalidatePath(`/admin/competencies/${id}`);
+}
+
 function isNextControlFlow(error: unknown) {
   return (
     typeof error === "object" &&
@@ -178,6 +183,7 @@ export async function saveCompetencyAction(
     const parentId = String(formData.get("parentId") ?? "").trim() || null;
     const description = String(formData.get("description") ?? "").trim() || null;
     if (!id || !name) throw new InvariantError("Нужны id и название");
+    if (id === "new") throw new InvariantError("Идентификатор new зарезервирован");
     assertCompetencyTree(parentId, type);
     assertCompetencyNameUnique(id, parentId, name);
     const db = getDb();
@@ -193,7 +199,7 @@ export async function saveCompetencyAction(
         .values({ id, name, type, parentId, description, updatedAt: now() })
         .run();
     }
-    revalidatePath("/admin/competencies");
+    revalidateCompetencyAdmin(id);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return saveCompetencyAction(_prev, formData, true);
@@ -215,7 +221,7 @@ export async function deleteCompetencyAction(
     db.delete(employeeCompetencyMarks).where(eq(employeeCompetencyMarks.competencyId, id)).run();
     db.delete(competencyLinks).where(eq(competencyLinks.competencyId, id)).run();
     db.delete(competencies).where(eq(competencies.id, id)).run();
-    revalidatePath("/admin/competencies");
+    revalidateCompetencyAdmin(id);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return deleteCompetencyAction(_prev, formData, true);
@@ -251,7 +257,7 @@ export async function addCompetencyLinkAction(
     const siblings = db.select().from(competencyLinks).where(eq(competencyLinks.competencyId, competencyId)).all();
     const sortOrder = siblings.reduce((max, link) => Math.max(max, link.sortOrder), -1) + 1;
     db.insert(competencyLinks).values({ competencyId, kind, title, url, sortOrder, updatedAt: now() }).run();
-    revalidatePath("/admin/competencies");
+    revalidateCompetencyAdmin(competencyId);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return addCompetencyLinkAction(_prev, formData, true);
@@ -267,8 +273,10 @@ export async function deleteCompetencyLinkAction(
   try {
     await requireAdmin();
     const id = Number(formData.get("linkId"));
-    getDb().delete(competencyLinks).where(eq(competencyLinks.id, id)).run();
-    revalidatePath("/admin/competencies");
+    const db = getDb();
+    const link = db.select().from(competencyLinks).where(eq(competencyLinks.id, id)).get();
+    db.delete(competencyLinks).where(eq(competencyLinks.id, id)).run();
+    revalidateCompetencyAdmin(link?.competencyId);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return deleteCompetencyLinkAction(_prev, formData, true);

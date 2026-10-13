@@ -31,6 +31,12 @@ async function addLink(page: Page, kind: string, title: string, url: string, com
   await group.getByRole("button", { name: "Добавить ссылку" }).click();
 }
 
+async function openCompetency(page: Page, name = COMPETENCY.name) {
+  await page.goto("/admin/competencies");
+  await page.getByRole("link", { name, exact: true }).click();
+  await expect(materials(page, name)).toBeVisible();
+}
+
 async function openAllDetails(page: Page) {
   await page
     .locator("details")
@@ -40,6 +46,8 @@ async function openAllDetails(page: Page) {
 test("админ добавляет и удаляет ссылку у компетенции", async ({ page }) => {
   await login(page, E2E_ADMIN);
   await page.goto("/admin/competencies");
+  await expect(page.getByRole("button", { name: "Добавить ссылку" })).toHaveCount(0);
+  await openCompetency(page);
 
   await addLink(page, "its", ITS.title, ITS.url);
   await expect(materials(page).getByRole("link", { name: ITS.title })).toHaveAttribute("href", ITS.url);
@@ -57,7 +65,7 @@ test("админ добавляет и удаляет ссылку у компе
 
 test("адрес не http(s) или пустое название — ошибка, строка не сохраняется", async ({ page }) => {
   await login(page, E2E_ADMIN);
-  await page.goto("/admin/competencies");
+  await openCompetency(page);
 
   await addLink(page, "training", "Курс", "ftp://example.org/course");
   await expect(materials(page).getByRole("alert")).toHaveText("Адрес ссылки: только http:// или https://");
@@ -77,11 +85,13 @@ test("удалённая компетенция уносит свои ссылк
   await login(page, E2E_ADMIN);
   await page.goto("/admin/competencies");
 
-  const create = page.locator("form", { has: page.getByRole("button", { name: "Добавить / сохранить" }) });
   const createTemp = async () => {
-    await create.getByPlaceholder("id (латиница)").fill(temp.id);
-    await create.getByPlaceholder("Название", { exact: true }).fill(temp.name);
-    await create.getByRole("button", { name: "Добавить / сохранить" }).click();
+    await page.goto("/admin/competencies/new");
+    const create = page.locator("form", { has: page.getByRole("button", { name: "Создать" }) });
+    await create.getByLabel("Идентификатор").fill(temp.id);
+    await create.getByLabel("Название", { exact: true }).fill(temp.name);
+    await create.getByRole("button", { name: "Создать" }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/competencies/${temp.id}$`));
     await expect(materials(page, temp.name)).toBeVisible();
   };
 
@@ -89,12 +99,9 @@ test("удалённая компетенция уносит свои ссылк
   await addLink(page, "video", "Видео к временной", "https://example.org/temp", temp.name);
   await expect(materials(page, temp.name).getByRole("link", { name: "Видео к временной" })).toBeVisible();
 
-  await page
-    .getByRole("listitem")
-    .filter({ has: materials(page, temp.name) })
-    .getByRole("button", { name: "Удалить", exact: true })
-    .click();
-  await expect(materials(page, temp.name)).toHaveCount(0);
+  await page.getByRole("button", { name: "Удалить", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/competencies$/);
+  await expect(page.getByRole("link", { name: temp.name, exact: true })).toHaveCount(0);
 
   await createTemp();
   await page.reload();

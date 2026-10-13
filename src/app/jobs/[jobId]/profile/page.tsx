@@ -92,7 +92,7 @@ function SkillCard({
         <ActionForm action={deleteSkillAction} className="mt-2">
           <input type="hidden" name="jobId" value={jobId} />
           <input type="hidden" name="skillId" value={row.skill.id} />
-          <button className="btn-quiet" type="submit">
+          <button className="btn-danger" type="submit">
             Убрать строку
           </button>
         </ActionForm>
