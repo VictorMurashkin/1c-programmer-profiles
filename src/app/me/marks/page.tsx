@@ -16,9 +16,9 @@ export default async function MyMarksPage() {
         <a href="/me" className="link-accent text-sm">
           Кабинет
         </a>
-        <h1 className="page-title">Мои пометки</h1>
+        <h1 className="page-title">Мои компетенции</h1>
       </div>
-      <p className="muted text-sm">Видите только вы. На разрыв, ИПР и должность пометки не влияют.</p>
+      <p className="muted text-sm">Видите только вы. Статусы не меняют разрыв, ИПР и должность.</p>
       <CompetencyMarkBoard rows={[...current, ...outside]} />
     </article>
   );

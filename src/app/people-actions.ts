@@ -180,7 +180,7 @@ export async function setCompetencyMarkAction(
     const status = String(formData.get("status") ?? "");
     const note = String(formData.get("note") ?? "");
     if (status !== "" && !MARK_STATUSES.includes(status as CompetencyMarkStatus)) {
-      throw new InvariantError("Пометка: есть, нет или в процессе");
+      throw new InvariantError("Статус: есть, нет или в процессе");
     }
     if (status !== "" && note.length > MARK_NOTE_LIMIT) {
       throw new InvariantError("Пояснение: не длиннее 1000 символов");
@@ -195,7 +195,7 @@ export async function setCompetencyMarkAction(
     if (status === "") {
       db.delete(employeeCompetencyMarks).where(own).run();
     } else if (!existing && !markable) {
-      throw new InvariantError("Пометить можно только навык своей должности или цели ИПР");
+      throw new InvariantError("Отметить можно только навык своей должности или цели ИПР");
     } else {
       const t = now();
       db.insert(employeeCompetencyMarks)

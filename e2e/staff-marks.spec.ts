@@ -20,7 +20,7 @@ async function login(page: Page, account: { login: string; password: string }) {
 }
 
 function markRow(page: Page, competency: string) {
-  return page.locator("li", { has: page.getByLabel(`Пометка: ${competency}`) });
+  return page.locator("li", { has: page.getByLabel(`Статус: ${competency}`) });
 }
 
 async function fillNote(note: ReturnType<Page["getByLabel"]>, value: string) {
@@ -64,13 +64,13 @@ test("админ заводит сотрудника на младшего пр�
 test("в кабинете сводка текущего набора, списки на отдельной странице", async ({ page }) => {
   await login(page, JUNIOR);
 
-  await expect(page.getByRole("heading", { level: 2, name: "Мои пометки" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Мои компетенции" })).toBeVisible();
   await expect(page.getByTestId("marks-has")).toHaveText("0");
   await expect(page.getByTestId("marks-lacks")).toHaveText("0");
   await expect(page.getByTestId("marks-progress")).toHaveText("0");
-  await expect(page.getByLabel(/^Пометка:/)).toHaveCount(0);
+  await expect(page.getByLabel(/^Статус:/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Ок" })).toHaveCount(0);
-  await page.getByRole("link", { name: "Открыть пометки" }).click();
+  await page.getByRole("link", { name: "Открыть компетенции" }).click();
   await expect(page).toHaveURL(/\/me\/marks$/);
 
   const learn = markRow(page, "Обучаемость");
@@ -80,11 +80,11 @@ test("в кабинете сводка текущего набора, списк
   const testing = markRow(page, "Автоматизированное тестирование");
   await expect(testing.getByText("цель ИПР")).toBeVisible();
   await expect(testing).toContainText(TARGET_CRITERIA);
-  await expect(page.getByLabel("Пометка: Алгоритмизация поставленных задач (A/01.3)")).toHaveCount(0);
+  await expect(page.getByLabel("Статус: Алгоритмизация поставленных задач (A/01.3)")).toHaveCount(0);
   await expect(page.getByText("Архитектура решения: границы систем и контуров")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Вне текущего профиля" })).toHaveCount(0);
   for (const option of ["не отмечено", "есть", "нет", "в процессе"]) {
-    await expect(page.getByLabel("Пометка: Обучаемость").locator("option", { hasText: option })).toHaveCount(1);
+    await expect(page.getByLabel("Статус: Обучаемость").locator("option", { hasText: option })).toHaveCount(1);
   }
 });
 
@@ -92,15 +92,17 @@ test("статус и пояснение пишутся без кнопки и �
   await login(page, JUNIOR);
   await page.goto("/me/marks");
 
-  await saveMark(page, () => page.getByLabel("Пометка: Обучаемость").selectOption("has"));
+  await saveMark(page, () => page.getByLabel("Статус: Обучаемость").selectOption("has"));
+  await expect(page.getByLabel("Статус: Обучаемость")).toHaveValue("has");
+  await expect(page.getByLabel("Пояснение: Обучаемость")).toBeVisible();
   const note = page.getByLabel("Пояснение: Обучаемость");
   await saveMark(page, () => fillNote(note, "смотрю ИТС"));
-  await saveMark(page, () => page.getByLabel("Пометка: Автоматизированное тестирование").selectOption("in_progress"));
+  await saveMark(page, () => page.getByLabel("Статус: Автоматизированное тестирование").selectOption("in_progress"));
 
   await page.reload();
-  await expect(page.getByLabel("Пометка: Обучаемость")).toHaveValue("has");
+  await expect(page.getByLabel("Статус: Обучаемость")).toHaveValue("has");
   await expect(page.getByLabel("Пояснение: Обучаемость")).toHaveValue("смотрю ИТС");
-  await expect(page.getByLabel("Пометка: Автоматизированное тестирование")).toHaveValue("in_progress");
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toHaveValue("in_progress");
   await expect(markRow(page, "Обучаемость")).toHaveClass(/mark-has/);
   await expect(markRow(page, "Автоматизированное тестирование")).toHaveClass(/mark-progress/);
 
@@ -123,21 +125,21 @@ test("ошибка статуса, чужого навыка и длинного
       select.dispatchEvent(new Event("change", { bubbles: true }));
     }),
   );
-  await expect(row.getByRole("alert")).toHaveText("Пометка: есть, нет или в процессе");
-  await expect(page.getByLabel("Пометка: Обучаемость")).toHaveValue("has");
+  await expect(row.getByRole("alert")).toHaveText("Статус: есть, нет или в процессе");
+  await expect(page.getByLabel("Статус: Обучаемость")).toHaveValue("has");
 
   await row.locator('input[name="competencyId"]').evaluate((input: HTMLInputElement) => {
     input.value = "no-such-competency";
   });
-  await saveMark(page, () => page.getByLabel("Пометка: Обучаемость").selectOption("lacks"));
-  await expect(row.getByRole("alert")).toHaveText("Пометить можно только навык своей должности или цели ИПР");
-  await expect(page.getByLabel("Пометка: Обучаемость")).toHaveValue("has");
+  await saveMark(page, () => page.getByLabel("Статус: Обучаемость").selectOption("lacks"));
+  await expect(row.getByRole("alert")).toHaveText("Отметить можно только навык своей должности или цели ИПР");
+  await expect(page.getByLabel("Статус: Обучаемость")).toHaveValue("has");
 
   await row.locator('input[name="competencyId"]').evaluate((input: HTMLInputElement, id: string) => {
     input.value = id;
   }, OUTSIDE_ID);
-  await saveMark(page, () => page.getByLabel("Пометка: Обучаемость").selectOption("lacks"));
-  await expect(row.getByRole("alert")).toHaveText("Пометить можно только навык своей должности или цели ИПР");
+  await saveMark(page, () => page.getByLabel("Статус: Обучаемость").selectOption("lacks"));
+  await expect(row.getByRole("alert")).toHaveText("Отметить можно только навык своей должности или цели ИПР");
 
   await page.reload();
   const fresh = markRow(page, "Обучаемость");
@@ -148,7 +150,7 @@ test("ошибка статуса, чужого навыка и длинного
   await expect(note).toHaveValue(long);
 
   await page.reload();
-  await expect(page.getByLabel("Пометка: Обучаемость")).toHaveValue("has");
+  await expect(page.getByLabel("Статус: Обучаемость")).toHaveValue("has");
   await expect(page.getByLabel("Пояснение: Обучаемость")).toHaveValue("смотрю ИТС");
   await expect(page.getByText("Архитектура решения: границы систем и контуров")).toHaveCount(0);
 });
@@ -158,18 +160,18 @@ test("фильтр, поиск и чип цели сужают список", as
   await page.goto("/me/marks");
 
   await page.getByLabel("Поиск навыка").fill("Обуча");
-  await expect(page.getByLabel("Пометка: Обучаемость")).toBeVisible();
-  await expect(page.getByLabel("Пометка: Автоматизированное тестирование")).toHaveCount(0);
+  await expect(page.getByLabel("Статус: Обучаемость")).toBeVisible();
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toHaveCount(0);
   await page.getByLabel("Поиск навыка").fill("");
 
   await page.getByLabel("Фильтр статуса").selectOption("has");
-  await expect(page.getByLabel("Пометка: Обучаемость")).toBeVisible();
-  await expect(page.getByLabel("Пометка: Автоматизированное тестирование")).toHaveCount(0);
+  await expect(page.getByLabel("Статус: Обучаемость")).toBeVisible();
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toHaveCount(0);
   await page.getByLabel("Фильтр статуса").selectOption("");
 
   await page.getByRole("button", { name: "только цель ИПР" }).click();
-  await expect(page.getByLabel("Пометка: Автоматизированное тестирование")).toBeVisible();
-  await expect(page.getByLabel("Пометка: Обучаемость")).toHaveCount(0);
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toBeVisible();
+  await expect(page.getByLabel("Статус: Обучаемость")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Вне текущего профиля" })).toHaveCount(0);
 });
 
@@ -199,17 +201,17 @@ test("пометка вне набора правится, снятие убир
   const testing = markRow(page, "Автоматизированное тестирование");
   await expect(testing.getByText("цель ИПР")).toHaveCount(0);
   await expect(testing).not.toContainText(TARGET_CRITERIA);
-  await saveMark(page, () => page.getByLabel("Пометка: Автоматизированное тестирование").selectOption("lacks"));
+  await saveMark(page, () => page.getByLabel("Статус: Автоматизированное тестирование").selectOption("lacks"));
   const note = page.getByLabel("Пояснение: Автоматизированное тестирование");
   await saveMark(page, () => fillNote(note, "было в цели"));
   await page.reload();
-  await expect(page.getByLabel("Пометка: Автоматизированное тестирование")).toHaveValue("lacks");
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toHaveValue("lacks");
   await expect(page.getByLabel("Пояснение: Автоматизированное тестирование")).toHaveValue("было в цели");
 
-  await saveMark(page, () => page.getByLabel("Пометка: Автоматизированное тестирование").selectOption(""));
-  await expect(page.getByLabel("Пометка: Автоматизированное тестирование")).toHaveCount(0);
+  await saveMark(page, () => page.getByLabel("Статус: Автоматизированное тестирование").selectOption(""));
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByLabel("Пометка: Автоматизированное тестирование")).toHaveCount(0);
+  await expect(page.getByLabel("Статус: Автоматизированное тестирование")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Вне текущего профиля" })).toHaveCount(0);
 
   await page.goto("/me");
@@ -222,13 +224,13 @@ test("руководитель-админ и гость пометок сотр�
   await page.goto("/people");
   await page.getByRole("link", { name: JUNIOR.name, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: JUNIOR.name })).toBeVisible();
-  await expect(page.getByText("Мои пометки")).toHaveCount(0);
-  await expect(page.getByLabel(/^Пометка:/)).toHaveCount(0);
+  await expect(page.getByText("Мои компетенции")).toHaveCount(0);
+  await expect(page.getByLabel(/^Статус:/)).toHaveCount(0);
   await expect(page.getByText("смотрю ИТС")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Выйти" }).click();
   await page.goto("/jobs/junior/profile");
-  await expect(page.getByLabel(/^Пометка:/)).toHaveCount(0);
+  await expect(page.getByLabel(/^Статус:/)).toHaveCount(0);
   await page.goto("/me/marks");
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/me");

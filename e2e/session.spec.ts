@@ -75,7 +75,7 @@ async function loginAsAdmin(page: Page) {
 
 test("админ входит учёткой и видит раздел компетенций", async ({ page }) => {
   await loginAsAdmin(page);
-  await expect(page.getByRole("link", { name: "Компетенции" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Компетенции", exact: true })).toBeVisible();
 });
 
 test("из кабинета должность открывается сразу профилем, админ правит её там же", async ({ page }) => {

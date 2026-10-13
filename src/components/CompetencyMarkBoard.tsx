@@ -31,21 +31,30 @@ function rowClass(status: MarkStatus) {
   return "mark-empty";
 }
 
+function isMarkStatus(value: string): value is MarkStatus {
+  return value === "" || value === "has" || value === "lacks" || value === "in_progress";
+}
+
 function MarkRow({ row }: { row: MarkBoardRow }) {
   const formRef = useRef<HTMLFormElement>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
   const [status, setStatus] = useState(row.status);
   const [note, setNote] = useState(row.note);
-  const [state, action, pending] = useActionState(setCompetencyMarkAction, null);
+  const [state, submitMark, pending] = useActionState(setCompetencyMarkAction, null);
 
-  function writeStatus(next: string) {
-    const hidden = formRef.current?.elements.namedItem("status");
-    if (hidden instanceof HTMLInputElement) hidden.value = next;
+  // Свой FormData, без <form action>: иначе useActionState вызывает form.reset() и возвращает список к старому значению.
+  function submit(nextStatus: string, nextNote: string) {
+    const data = new FormData();
+    const competency = formRef.current?.elements.namedItem("competencyId");
+    data.set("competencyId", competency instanceof HTMLInputElement ? competency.value : row.id);
+    data.set("status", nextStatus);
+    data.set("note", nextStatus ? nextNote : "");
+    submitMark(data);
   }
 
   useEffect(() => {
     setStatus(row.status);
-    writeStatus(row.status);
+    if (selectRef.current) selectRef.current.value = row.status;
   }, [row.status]);
 
   useEffect(() => {
@@ -54,9 +63,8 @@ function MarkRow({ row }: { row: MarkBoardRow }) {
 
   useLayoutEffect(() => {
     if (!state?.error) return;
-    if (selectRef.current) selectRef.current.value = row.status;
     setStatus(row.status);
-    writeStatus(row.status);
+    if (selectRef.current) selectRef.current.value = row.status;
   }, [state, row.status]);
 
   return (
@@ -68,20 +76,18 @@ function MarkRow({ row }: { row: MarkBoardRow }) {
         </div>
         {row.criteria ? <p className="skill-criteria">{row.criteria}</p> : null}
       </div>
-      <form ref={formRef} action={action} className="space-y-2">
+      <form ref={formRef} className="space-y-2" onSubmit={(event) => event.preventDefault()}>
         <fieldset className="form-fields space-y-2">
           <input type="hidden" name="competencyId" value={row.id} />
-          <input type="hidden" name="status" defaultValue={row.status} />
           <select
             ref={selectRef}
             className="field"
-            aria-label={`Пометка: ${row.name}`}
+            aria-label={`Статус: ${row.name}`}
             defaultValue={row.status}
             onChange={(event) => {
               const next = event.target.value;
-              setStatus(next as MarkStatus);
-              writeStatus(next);
-              event.currentTarget.form?.requestSubmit();
+              if (isMarkStatus(next)) setStatus(next);
+              submit(next, next ? note : "");
             }}
           >
             <option value="">не отмечено</option>
@@ -100,7 +106,7 @@ function MarkRow({ row }: { row: MarkBoardRow }) {
               onBlur={(event) => {
                 const value = event.currentTarget.value;
                 setNote(value);
-                if (value !== row.note) event.currentTarget.form?.requestSubmit();
+                if (value !== row.note) submit(status, value);
               }}
             />
           ) : null}
