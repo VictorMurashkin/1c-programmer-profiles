@@ -93,7 +93,7 @@
       "name": "Обучаемость",
       "description": null,
       "type": "universal",
-      "parentId": null
+      "parentId": "group-leadership"
     },
     {
       "id": "comp-navyki-delovoi-perepiski-i-soblyudenie-korporativnoi-etiki",
@@ -114,7 +114,7 @@
       "name": "Умение искать информацию из тематических источников",
       "description": null,
       "type": "universal",
-      "parentId": null
+      "parentId": "group-leadership"
     },
     {
       "id": "comp-vladenie-sredstvami-razrabotki-i-administrirovaniya-platformy-1s-8-3",
@@ -142,7 +142,7 @@
       "name": "Знание регламента и стандартов разработки",
       "description": null,
       "type": "professional",
-      "parentId": null
+      "parentId": "group-platform"
     },
     {
       "id": "comp-opyt-raboty-s-interfeisami-v-upravlyaemom-prilozhenii",
@@ -154,6 +154,13 @@
     {
       "id": "comp-pechatnye-formy-i-otchety-na-skd",
       "name": "Печатные формы и отчёты на СКД",
+      "description": null,
+      "type": "professional",
+      "parentId": "group-platform"
+    },
+    {
+      "id": "comp-rasshireniya-konfiguracii",
+      "name": "Расширения конфигурации",
       "description": null,
       "type": "professional",
       "parentId": "group-platform"
@@ -226,7 +233,7 @@
       "name": "Инструменты ИИ",
       "description": null,
       "type": "professional",
-      "parentId": null
+      "parentId": "group-devops"
     }
   ],
   "profiles": [
@@ -271,8 +278,8 @@
         },
         {
           "competencyId": "comp-vladenie-sredstvami-razrabotki-i-administrirovaniya-platformy-1s-8-3",
-          "level": 2,
-          "criteria": "Для чего нужны программы 1С;Что такое платформа 1С, конфигурация, информационная база, база данных в чем их отличие\nУстановка платформы и конфигурации, развертка базы; Какие бывают типы лицензий, как установить 1С себе чтобы она работала\nВыгрузка, загрузка базы/конфигурации;Чистка кэша, ТИИ\nУстановка и обновление типовой конфигурации;Настройки поддержки\nИспользование синтаксис-помощника\nУдаление помеченных объектов, работа с журналом регистрации",
+          "level": 1,
+          "criteria": "Сам разворачивает базу, обновляет типовую, чистит кэш, разбирает журнал регистрации",
           "sortOrder": 6
         },
         {
@@ -302,13 +309,13 @@
         {
           "competencyId": "comp-pechatnye-formy-i-otchety-na-skd",
           "level": 1,
-          "criteria": "Общие сведения о системе компоновке данных\nОбщие сведения о макетах, их заполнении и выводе на форму\nУмение создавать отчеты и ПФ как дополнительные и добавлять в базу",
+          "criteria": "Делает отчёт на СКД по образцу",
           "sortOrder": 11
         },
         {
           "competencyId": "comp-znanie-tipovyh-konfiguracii",
           "level": 1,
-          "criteria": "Бухгалтерия предприятия, ERP, Управление Холдингом, Управление торговлей, Документооборот и т.д.",
+          "criteria": "Находит в типовой нужный документ, регистр и механизм под задачу",
           "sortOrder": 12
         },
         {
@@ -362,8 +369,14 @@
         {
           "competencyId": "comp-instrumenty-ii",
           "level": 1,
-          "criteria": "Применение AI (чат-боты, агенты) для изучения платформы, написания простых конструкций и пояснения ошибок",
+          "criteria": "Применение ИИ (чат-боты, агенты) для изучения платформы, написания простых конструкций и пояснения ошибок",
           "sortOrder": 21
+        },
+        {
+          "competencyId": "comp-rasshireniya-konfiguracii",
+          "level": 1,
+          "criteria": "Дорабатывает типовую через расширение по образцу: заимствует объект и добавляет свою процедуру, не меняя основную конфигурацию",
+          "sortOrder": 22
         }
       ]
     }

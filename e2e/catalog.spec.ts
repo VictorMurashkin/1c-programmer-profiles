@@ -114,11 +114,11 @@ test("раскрытие не запоминается: после переза�
 
 test("ручное раскрытие одной карточки не раскрывает остальные", async ({ page }) => {
   await page.goto("/jobs/junior/profile");
-  await page.getByText("Обучаемость", { exact: true }).click();
+  await page.getByText("Алгоритмизация поставленных задач (A/01.3)", { exact: true }).click();
 
   const opened = page.locator("details[open]");
   await expect(opened).toHaveCount(1);
-  await expect(opened).toContainText("Обучаемость");
+  await expect(opened).toContainText("Алгоритмизация поставленных задач (A/01.3)");
   await expect(page.getByRole("button", { name: "Развернуть все" })).toHaveCount(1);
 });
 

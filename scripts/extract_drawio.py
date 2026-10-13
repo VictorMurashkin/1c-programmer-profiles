@@ -97,12 +97,12 @@ CANONICAL_COMPETENCIES = {
     "comp-bazovoe-znanie-oop-i-algoritmov": {
         "id": "comp-oop-i-algoritmy",
         "name": "ООП и алгоритмы",
-        "parentId": None,
+        "parentId": "group-platform",
     },
     "comp-bazovye-znaniya-vysokourovnevogo-yazyka-programmirovaniya": {
         "id": "comp-vysokourovnevyi-yazyk-programmirovaniya",
         "name": "Высокоуровневый язык программирования (кроме 1С)",
-        "parentId": None,
+        "parentId": "group-platform",
     },
     "comp-bazovye-znaniya-yazyka-sql": {
         "id": "comp-yazyk-sql",
@@ -111,11 +111,25 @@ CANONICAL_COMPETENCIES = {
     },
 }
 
+# Имена, которые разбор схем не относит к корню по ключевым словам.
+# Повторный запуск генератора не должен снова оставлять их без родителя.
+PARENT_PINS = {
+    "comp-obuchaemost": "group-leadership",
+    "comp-umenie-iskat-informaciyu-iz-tematicheskih-istochnikov": "group-leadership",
+    "comp-kommunikabelnost": "group-communication",
+    "comp-znanie-reglamenta-i-standartov-razrabotki": "group-platform",
+    "comp-oop-i-algoritmy": "group-platform",
+    "comp-vysokourovnevyi-yazyk-programmirovaniya": "group-platform",
+    "comp-dokumentirovanie-arhitektury": "group-platform",
+    "comp-instrumenty-ii": "group-devops",
+    "comp-sonarqube-staticheskii-analiz-koda": "group-devops",
+}
+
 INFOSTART_GROUPS = [
     ("group-platform", "Платформа 1С", "professional", ("платформ", "конфигурац", "метаданн", "управляем", "скд", "печатн")),
     ("group-db", "СУБД", "professional", ("запрос", "sql", "индекс", "субд", "баз данных", "блокиров")),
     ("group-integrations", "Интеграции", "professional", ("обмен", "http", "rest", "интеграц", "json", "xml")),
-    ("group-devops", "DevOps", "professional", ("git", "ci/cd", "docker", "devops", "хран", "контрол верс")),
+    ("group-devops", "DevOps", "professional", ("git", "ci/cd", "docker", "devops", "хран", "контрол верс", "sonar")),
     ("group-testing", "Тестирование", "professional", ("тест", "vanessa", "отладк")),
     ("group-security", "Безопасность", "professional", ("безопасн", "rls", "прав доступа", "ролей")),
     ("group-communication", "Коммуникация", "universal", ("реч", "переписк", "этик", "взаимодейств")),
@@ -135,8 +149,9 @@ LEVEL_MATRIX = {
     "comp-oop-i-algoritmy": (1, None, None, None, None),
     "comp-vysokourovnevyi-yazyk-programmirovaniya": (1, None, None, None, None),
     "comp-yazyk-sql": (1, None, None, None, None),
-    "comp-vladenie-sredstvami-razrabotki-i-administrirovaniya-platformy-1s-8-3": (1, 2, 2, 3, 3),
-    "comp-navyki-programmirovaniya-na-yazyke-1s": (None, 1, 2, 3, 3),
+    "comp-vladenie-sredstvami-razrabotki-i-administrirovaniya-platformy-1s-8-3": (1, 1, 2, 3, 3),
+    "comp-navyki-programmirovaniya-na-yazyke-1s": (1, 1, 2, 3, 3),
+    "comp-rasshireniya-konfiguracii": (None, 1, 2, 3, 3),
     "comp-znanie-yazyka-zaprosov-1s": (None, 1, 2, 3, 3),
     "comp-opyt-raboty-s-interfeisami-v-upravlyaemom-prilozhenii": (None, 1, 2, 3, 3),
     "comp-pechatnye-formy-i-otchety-na-skd": (None, 1, 2, 3, 3),
@@ -148,9 +163,8 @@ LEVEL_MATRIX = {
     "comp-avtomatizirovannoe-testirovanie": (None, None, 1, 2, 3),
     "comp-rest-odata-http-servisy": (None, None, 1, 2, 3),
     "comp-sonarqube-staticheskii-analiz-koda": (None, None, 1, 2, 3),
-    "comp-integracionnye-mehanizmy": (None, None, None, 2, 3),
+    "comp-integracionnye-mehanizmy": (None, None, 1, 2, 3),
     "comp-linux-krossplatformennost": (None, None, None, 1, 2),
-    "comp-rabota-s-brokerami-soobschenii": (None, None, None, 1, 2),
     "comp-proektirovanie-dorabotok-konfiguracii": (None, None, None, 2, 3),
     "comp-dokumentirovanie-arhitektury": (None, None, None, None, 2),
     # темы, которых не было в схемах 2022–2026: добавлены вручную
@@ -161,12 +175,13 @@ LEVEL_MATRIX = {
     "comp-personalnye-dannye-i-trebovaniya-bezopasnosti": (None, None, 1, 2, 3),
     "comp-edt-i-rabota-s-ishodnikami": (None, None, None, 1, 2),
     "comp-integracionnye-platformy-i-esb": (None, None, None, 1, 2),
-    "comp-obuchaemost": (2, 2, 2, 2, 2),
+    "comp-model-dannyh-i-proektirovanie-registrov": (None, None, 1, 2, None),
+    "comp-obuchaemost": (1, 2, 2, 2, 2),
     "comp-gramotnaya-pismennaya-rech": (1, 1, 2, 2, 3),
     "comp-navyki-delovoi-perepiski-i-soblyudenie-korporativnoi-etiki": (1, 1, 2, 2, 3),
     "comp-samostoyatelnost": (1, 1, 2, 3, 3),
     "comp-umenie-iskat-informaciyu-iz-tematicheskih-istochnikov": (None, 2, 2, 3, 3),
-    "comp-effektivnoe-vzaimodeistvie-v-komande": (None, 1, 2, 2, 3),
+    "comp-effektivnoe-vzaimodeistvie-v-komande": (1, 1, 2, 2, 3),
     "comp-upravlenie-vremenem": (None, None, 1, 2, 3),
     "comp-kommunikabelnost": (None, None, None, 2, 3),
     "comp-upravlenie-komandoi": (None, None, None, None, 1),
@@ -186,7 +201,6 @@ PROFILE_LEVELS: dict[str, dict[str, int]] = {
         "comp-blokirovki-i-tranzakcii": 3,
         "comp-integracionnye-mehanizmy": 3,
         "comp-rest-odata-http-servisy": 3,
-        "comp-rabota-s-brokerami-soobschenii": 3,
         "comp-integracionnye-platformy-i-esb": 3,
         "comp-rabota-s-pravami-dostupa-i-rls": 3,
         "comp-personalnye-dannye-i-trebovaniya-bezopasnosti": 3,
@@ -221,7 +235,6 @@ PROFILE_LEVELS: dict[str, dict[str, int]] = {
         "comp-personalnye-dannye-i-trebovaniya-bezopasnosti": 3,
         "comp-instrumenty-ii": 3,
         "comp-infrastruktura-kollektivnoi-razrabotki": 3,
-        "comp-upravlenie-vypuskami-i-konfiguraciyami": 3,
         "comp-vladenie-sredstvami-razrabotki-i-administrirovaniya-platformy-1s-8-3": 2,
         "comp-navyki-programmirovaniya-na-yazyke-1s": 2,
         "comp-znanie-yazyka-zaprosov-1s": 2,
@@ -431,6 +444,8 @@ def extract_profile(path: Path, job_id: str) -> tuple[list[dict], list[dict]]:
         canon = CANONICAL_COMPETENCIES.get(cid)
         if canon:
             cid, name, parent = canon["id"], canon["name"], canon["parentId"]
+        if cid in PARENT_PINS:
+            parent = PARENT_PINS[cid]
         competencies.append(
             {
                 "id": cid,

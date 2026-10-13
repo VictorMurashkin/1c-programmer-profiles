@@ -226,6 +226,91 @@ function ensureIdpPeriodColumns() {
   }
 }
 
+const ESB_ID = "comp-integracionnye-platformy-i-esb";
+const ESB_NAME = "Интеграционные платформы, ESB и брокеры сообщений";
+const BROKER_ID = "comp-rabota-s-brokerami-soobschenii";
+const RELEASES_ID = "comp-upravlenie-vypuskami-i-konfiguraciyami";
+
+function tableExists(name: string) {
+  return Boolean(
+    getSqlite().prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name),
+  );
+}
+
+/** Пометки, пул, пункты и ссылки seed не пересобирает. Слияние компетенций переносит их до удаления справочника. */
+function retargetMergedCompetencies() {
+  const sqlite = getSqlite();
+  if (!tableExists("competencies")) return;
+  if (sqlite.prepare("SELECT 1 FROM competencies WHERE id = ?").get(ESB_ID)) {
+    sqlite.prepare("UPDATE competencies SET name = ? WHERE id = ?").run(ESB_NAME, ESB_ID);
+  }
+
+  const move = (table: string, keyColumns: string[], nameColumn?: string) => {
+    if (!tableExists(table)) return;
+    const keys = keyColumns.map((column) => `${table}.${column}`).join(", ");
+    sqlite
+      .prepare(
+        `DELETE FROM ${table}
+         WHERE competency_id = ?
+           AND (${keys}) IN (SELECT ${keyColumns.join(", ")} FROM ${table} WHERE competency_id = ?)`,
+      )
+      .run(BROKER_ID, ESB_ID);
+    if (nameColumn) {
+      sqlite
+        .prepare(`UPDATE ${table} SET competency_id = ?, ${nameColumn} = ? WHERE competency_id = ?`)
+        .run(ESB_ID, ESB_NAME, BROKER_ID);
+      sqlite.prepare(`UPDATE ${table} SET ${nameColumn} = ? WHERE competency_id = ?`).run(ESB_NAME, ESB_ID);
+    } else {
+      sqlite.prepare(`UPDATE ${table} SET competency_id = ? WHERE competency_id = ?`).run(ESB_ID, BROKER_ID);
+    }
+    sqlite.prepare(`DELETE FROM ${table} WHERE competency_id = ?`).run(RELEASES_ID);
+  };
+
+  move("employee_competency_marks", ["employee_id"]);
+  move("idp_pool", ["idp_id"], "competency_name");
+  move("idp_items", ["id"], "competency_name");
+  if (tableExists("idp_assignments")) {
+    if (tableExists("idp_items")) {
+      sqlite
+        .prepare(
+          `UPDATE idp_items SET assignment_id = NULL
+           WHERE assignment_id IN (
+             SELECT id FROM idp_assignments
+             WHERE competency_id = ?
+               AND EXISTS (
+                 SELECT 1 FROM idp_assignments AS kept
+                 WHERE kept.competency_id = ?
+                   AND kept.name = idp_assignments.name
+                   AND kept.archived = 0
+               )
+           )`,
+        )
+        .run(BROKER_ID, ESB_ID);
+      sqlite
+        .prepare(
+          `UPDATE idp_items SET assignment_id = NULL
+           WHERE assignment_id IN (SELECT id FROM idp_assignments WHERE competency_id = ?)`,
+        )
+        .run(RELEASES_ID);
+    }
+    sqlite
+      .prepare(
+        `DELETE FROM idp_assignments
+         WHERE competency_id = ?
+           AND EXISTS (
+             SELECT 1 FROM idp_assignments AS kept
+             WHERE kept.competency_id = ?
+               AND kept.name = idp_assignments.name
+               AND kept.archived = 0
+           )`,
+      )
+      .run(BROKER_ID, ESB_ID);
+    sqlite.prepare("UPDATE idp_assignments SET competency_id = ? WHERE competency_id = ?").run(ESB_ID, BROKER_ID);
+    sqlite.prepare("DELETE FROM idp_assignments WHERE competency_id = ?").run(RELEASES_ID);
+  }
+  move("competency_links", ["id"]);
+}
+
 function ensureAssignmentTables() {
   const sqlite = getSqlite();
   sqlite.exec(`
@@ -293,4 +378,5 @@ export function migrate() {
   ensureIdpPeriodColumns();
   ensureAssignmentTables();
   rebuildIdpItems();
+  retargetMergedCompetencies();
 }
