@@ -52,11 +52,41 @@ test("создание открывает карточку, и ссылка ес
   await page.getByRole("link", { name: "Новое задание" }).click();
   await expect(page).toHaveURL(/\/assignments\/new$/);
   const form = await fillCreate(page, NAME, LEARN, VERIFY);
+  const competencyId = await form.getByLabel(/^Компетенция/).inputValue();
   await form.getByRole("button", { name: "Создать" }).click();
   await expect(page).toHaveURL(/\/assignments\/asg/);
   await expect(page.getByRole("heading", { level: 1, name: NAME })).toBeVisible();
   cardPath = page.url();
   await page.getByRole("link", { name: "← Все задания" }).click();
+  await expect(page.getByRole("link", { name: NAME, exact: true })).toBeVisible();
+
+  await page.getByRole("link", { name: "Новое задание" }).click();
+  const second = page.locator("form").filter({ has: page.getByRole("button", { name: "Создать" }) });
+  const otherId = await second.getByLabel(/^Компетенция/).evaluate((select, current) => {
+    if (!(select instanceof HTMLSelectElement)) return "";
+    return [...select.options].map((option) => option.value).find((value) => value !== current) ?? "";
+  }, competencyId);
+  if (!otherId) throw new Error("нет второй компетенции");
+  await second.getByLabel(/^Компетенция/).selectOption(otherId);
+  const otherAssignment = `E2E фильтр ${STAMP}`;
+  await second.getByLabel(/^Название/).fill(otherAssignment);
+  await second.getByLabel(/^Узнать/).fill(LEARN);
+  await second.getByLabel(/^Проверить/).fill(VERIFY);
+  await second.getByRole("button", { name: "Создать" }).click();
+  await expect(page).toHaveURL(/\/assignments\/asg/);
+  await page.getByRole("link", { name: "← Все задания" }).click();
+
+  const filter = page.getByLabel("Фильтр компетенции");
+  await filter.selectOption(otherId);
+  await page.getByRole("button", { name: "Показать" }).click();
+  await expect(page.getByRole("link", { name: NAME, exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: otherAssignment, exact: true })).toBeVisible();
+  await filter.selectOption(competencyId);
+  await page.getByRole("button", { name: "Показать" }).click();
+  await expect(page.getByRole("link", { name: NAME, exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: otherAssignment, exact: true })).toHaveCount(0);
+  await filter.selectOption("");
+  await page.getByRole("button", { name: "Показать" }).click();
   await expect(page.getByRole("link", { name: NAME, exact: true })).toBeVisible();
 });
 
@@ -88,7 +118,7 @@ test("скрытие убирает форму правки, возврат её
   const edited = `${NAME} правка`;
   await Promise.all([
     page.waitForResponse((response) => response.request().method() === "POST"),
-    page.getByRole("button", { name: "Скрыть" }).click(),
+    page.getByRole("button", { name: "Перенести в архив" }).click(),
   ]);
   await page.reload();
   await expect(page.getByLabel(/^Название/)).toHaveCount(0);

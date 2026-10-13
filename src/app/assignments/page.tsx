@@ -6,11 +6,27 @@ import { getCompetency, listIdpAssignments } from "@/lib/queries";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default async function AssignmentsPage() {
+export default async function AssignmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ competency?: string }>;
+}) {
   const actor = await getSessionEmployee();
   if (!actor) redirect("/login");
   if (!canEditAssignmentCatalog(actor)) redirect("/idps");
-  const items = listIdpAssignments();
+  const { competency = "" } = await searchParams;
+  const items = listIdpAssignments().map((row) => ({
+    id: row.id,
+    name: row.name,
+    competencyId: row.competencyId,
+    competencyName: getCompetency(row.competencyId)?.name ?? row.competencyId,
+    archived: row.archived === 1,
+  }));
+  const competencies = [...new Map(items.map((item) => [item.competencyId, item.competencyName])).entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  const selected = competencies.some((item) => item.id === competency) ? competency : "";
+  const visible = selected ? items.filter((item) => item.competencyId === selected) : items;
 
   return (
     <div className="space-y-6">
@@ -23,23 +39,44 @@ export default async function AssignmentsPage() {
           Новое задание
         </a>
       </div>
-      <ul className="panel">
-        {items.map((row) => {
-          const competency = getCompetency(row.competencyId);
-          return (
-            <li key={row.id} className="list-row">
-              <div>
-                <a href={`/assignments/${encodeURIComponent(row.id)}`} className="link-accent font-medium">
-                  {row.name}
-                </a>
-                <div className="mt-1 text-xs muted">{competency?.name ?? row.competencyId}</div>
-              </div>
-              {row.archived === 1 ? <span className="chip">скрыто</span> : null}
-            </li>
-          );
-        })}
-        {items.length === 0 ? <li className="list-row muted">Заданий ещё нет</li> : null}
-      </ul>
+      {items.length === 0 ? (
+        <ul className="panel">
+          <li className="list-row muted">Заданий ещё нет</li>
+        </ul>
+      ) : (
+        <div className="space-y-4">
+          <form action="/assignments" className="flex flex-wrap items-end gap-3">
+            <label className="lbl">
+              Компетенция
+              <select className="field" name="competency" aria-label="Фильтр компетенции" defaultValue={selected}>
+                <option value="">все</option>
+                {competencies.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="btn" type="submit">
+              Показать
+            </button>
+          </form>
+          {visible.length === 0 ? <p className="muted text-sm">Ничего не найдено.</p> : null}
+          <ul className="panel">
+            {visible.map((row) => (
+              <li key={row.id} className="list-row">
+                <div>
+                  <a href={`/assignments/${encodeURIComponent(row.id)}`} className="link-accent font-medium">
+                    {row.name}
+                  </a>
+                  <div className="mt-1 text-xs muted">{row.competencyName}</div>
+                </div>
+                {row.archived ? <span className="chip">скрыто</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

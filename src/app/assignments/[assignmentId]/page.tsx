@@ -55,8 +55,8 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
       ) : null}
       <ActionForm action={archiveAssignmentAction}>
         <input type="hidden" name="id" value={row.id} />
-        <button className={row.archived === 1 ? "btn" : "btn-quiet"} type="submit">
-          {row.archived === 1 ? "Вернуть" : "Скрыть"}
+        <button className={row.archived === 1 ? "btn" : "btn-archive w-fit"} type="submit">
+          {row.archived === 1 ? "Вернуть" : "Перенести в архив"}
         </button>
       </ActionForm>
     </div>
