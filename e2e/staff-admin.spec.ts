@@ -17,7 +17,7 @@ async function login(page: Page, account: { login: string; password: string }) {
 }
 
 function editForm(page: Page) {
-  return page.locator("form").filter({ has: page.getByRole("checkbox", { name: /^Админ/ }) });
+  return page.locator("form").filter({ has: page.getByLabel(/^Админ/) });
 }
 
 async function boxMetrics(box: Locator) {
@@ -39,18 +39,18 @@ test("создание с отмеченным «Админ»: на карточ
   await create.getByLabel("Логин").fill(STAFF.login);
   await create.getByLabel("Имя").fill(STAFF.name);
   await create.getByLabel("Пароль").fill(STAFF.password);
-  await create.getByRole("checkbox", { name: /^Админ/ }).check();
+  await create.getByLabel(/^Админ/).selectOption("1");
   await create.getByRole("button", { name: "Создать" }).click();
   await page.getByRole("link", { name: STAFF.name, exact: true }).click();
   staffPath = page.url();
 
   const edit = editForm(page);
-  const checkbox = edit.getByRole("checkbox", { name: /^Админ/ });
-  await expect(checkbox).toBeChecked();
+  const admin = edit.getByLabel(/^Админ/);
+  await expect(admin).toHaveValue("1");
 
-  const label = edit.locator("label", { has: page.getByRole("checkbox", { name: /^Админ/ }) });
+  const label = edit.locator("label", { has: page.getByLabel(/^Админ/) });
   const stacked = await label.evaluate((el) => {
-    const box = el.querySelector(".field");
+    const box = el.querySelector("select");
     const text = [...el.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim());
     if (!(box instanceof HTMLElement) || !text) return false;
     const range = document.createRange();
@@ -61,8 +61,8 @@ test("создание с отмеченным «Админ»: на карточ
   });
   expect(stacked).toBe(true);
 
-  const adminBox = await boxMetrics(label.locator(".field"));
-  const job = await boxMetrics(edit.locator("select[name='jobId']"));
+  const adminBox = await boxMetrics(admin);
+  const job = await boxMetrics(edit.getByLabel(/^Должность/));
   expect(adminBox.width).toBeCloseTo(job.width, 0);
   expect(adminBox.border).toBe(job.border);
 });
@@ -71,13 +71,13 @@ test("снятие «Админ» у не единственного админ�
   await login(page, E2E_ADMIN);
   await page.goto(staffPath);
   const edit = editForm(page);
-  await edit.getByRole("checkbox", { name: /^Админ/ }).uncheck();
+  await edit.getByLabel(/^Админ/).selectOption("");
   await Promise.all([
     page.waitForResponse((response) => response.request().method() === "POST"),
     edit.getByRole("button", { name: "Сохранить" }).click(),
   ]);
   await page.reload();
-  await expect(editForm(page).getByRole("checkbox", { name: /^Админ/ })).not.toBeChecked();
+  await expect(editForm(page).getByLabel(/^Админ/)).toHaveValue("");
 
   await page.goto("/people");
   const row = page.locator("li").filter({ has: page.getByRole("link", { name: STAFF.name, exact: true }) });
@@ -93,20 +93,20 @@ test("последнего админа снять нельзя", async ({ page 
   await page.goto("/people");
   await page.getByRole("link", { name: E2E_ADMIN.name, exact: true }).click();
   const edit = editForm(page);
-  await edit.getByRole("checkbox", { name: /^Админ/ }).uncheck();
+  await edit.getByLabel(/^Админ/).selectOption("");
   await Promise.all([
     page.waitForResponse((response) => response.request().method() === "POST"),
     edit.getByRole("button", { name: "Сохранить" }).click(),
   ]);
   await expect(edit.getByRole("alert")).toHaveText("Нельзя убрать последнего админа");
   await page.reload();
-  await expect(editForm(page).getByRole("checkbox", { name: /^Админ/ })).toBeChecked();
+  await expect(editForm(page).getByLabel(/^Админ/)).toHaveValue("1");
 });
 
 test("сотрудник без признака админа не видит поле «Админ»", async ({ page }) => {
   await login(page, STAFF);
   await page.goto(staffPath);
   await expect(page.getByRole("heading", { level: 1, name: STAFF.name })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /^Админ/ })).toHaveCount(0);
+  await expect(page.getByLabel(/^Админ/)).toHaveCount(0);
   await expect(page.getByText("Админ", { exact: true })).toHaveCount(0);
 });

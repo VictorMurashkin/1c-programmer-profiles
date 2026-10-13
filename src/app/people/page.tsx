@@ -78,9 +78,10 @@ export default async function PeoplePage() {
           </label>
           <label className="lbl">
             Админ
-            <span className="field block">
-              <input type="checkbox" name="isAdmin" value="1" />
-            </span>
+            <select className="field" name="isAdmin" defaultValue="">
+              <option value="">нет</option>
+              <option value="1">да</option>
+            </select>
           </label>
           <button className="btn-primary md:col-span-2 w-fit" type="submit">
             Создать
