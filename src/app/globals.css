@@ -213,7 +213,8 @@ a {
 
 .btn:hover,
 .btn-ghost:hover,
-.btn-primary:hover {
+.btn-primary:hover,
+.btn-danger:hover {
   background: var(--toolbar-hover);
 }
 
@@ -224,11 +225,9 @@ a {
 }
 
 .btn-danger {
-  border-color: transparent;
+  border-color: var(--security-stroke);
   color: var(--security-stroke);
-  text-decoration: underline;
-  background: transparent;
-  padding-left: 0;
+  text-decoration: none;
 }
 
 .btn-quiet {

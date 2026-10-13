@@ -48,6 +48,7 @@ async function main() {
       DELETE FROM profile_skills;
       DELETE FROM profiles;
       DELETE FROM job_transitions;
+      DELETE FROM competency_links;
       DELETE FROM competencies;
       DELETE FROM jobs;
       PRAGMA foreign_keys = ON;

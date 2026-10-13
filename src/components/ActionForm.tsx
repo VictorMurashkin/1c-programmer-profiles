@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useCallback, useState } from "react";
 import type { ActionResult } from "@/lib/action-result";
 
 const DOT_DATE_RE = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
@@ -25,6 +25,17 @@ function prepareDates(form: HTMLFormElement) {
     if (iso) node.value = iso;
   }
   return null;
+}
+
+/** `{имяПоля}` в шаблоне заменяется значением этого поля. Пустое поле — переход не делаем. */
+function successLocation(template: string, formData: FormData) {
+  let missing = false;
+  const href = template.replace(/\{(\w+)\}/g, (_match, key: string) => {
+    const value = String(formData.get(key) ?? "").trim();
+    if (!value) missing = true;
+    return encodeURIComponent(value);
+  });
+  return missing ? null : href;
 }
 
 function FormBody({
@@ -62,13 +73,30 @@ export function ActionForm({
   children,
   className,
   beforeSubmit,
+  successPath,
 }: {
   action: (state: ActionResult, formData: FormData) => Promise<ActionResult>;
   children: React.ReactNode;
   className?: string;
   beforeSubmit?: (formData: FormData) => string | null;
+  /** Куда перейти после успешного сохранения. `redirect()` из действия с `useActionState` вызывать нельзя. */
+  successPath?: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, null);
+  const runAndLeave = useCallback(
+    async (prev: ActionResult, formData: FormData) => {
+      const result = await action(prev, formData);
+      if (!result?.error && successPath) {
+        const href = successLocation(successPath, formData);
+        // Переход здесь, а не в эффекте: после удаления страница уже 404 и форма размонтирована.
+        if (href) window.location.assign(href);
+      }
+      return result;
+    },
+    [action, successPath],
+  );
+  // Без successPath действие сервера передаётся как раньше. Новая обёртка на каждый рендер
+  // сбрасывает pending, и тест не ждёт «Сохраняем…».
+  const [state, formAction, pending] = useActionState(successPath ? runAndLeave : action, null);
   const [localError, setLocalError] = useState<string | null>(null);
   const error = localError ?? state?.error ?? null;
 

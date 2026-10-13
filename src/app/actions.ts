@@ -3,7 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { getDb, now, retryIfClosed } from "@/db";
-import { competencies, employeeCompetencyMarks, jobTransitions, jobs, profileSkills, profiles } from "@/db/schema";
+import {
+  competencies,
+  competencyLinks,
+  employeeCompetencyMarks,
+  jobTransitions,
+  jobs,
+  profileSkills,
+  profiles,
+  type CompetencyLinkKind,
+} from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import {
   InvariantError,
@@ -17,6 +26,13 @@ import {
 } from "@/lib/invariants";
 import { getCompetency } from "@/lib/queries";
 import type { ActionResult } from "@/lib/action-result";
+
+function revalidateCompetencyAdmin(id?: string) {
+  revalidatePath("/admin/competencies");
+  if (id) revalidatePath(`/admin/competencies/${id}`);
+  revalidatePath("/jobs/[jobId]/profile", "page");
+  revalidatePath("/idps/[idpId]", "page");
+}
 
 function isNextControlFlow(error: unknown) {
   return (
@@ -169,11 +185,14 @@ export async function saveCompetencyAction(
     const parentId = String(formData.get("parentId") ?? "").trim() || null;
     const description = String(formData.get("description") ?? "").trim() || null;
     if (!id || !name) throw new InvariantError("Нужны id и название");
+    if (id === "new") throw new InvariantError("Идентификатор new зарезервирован");
+    const creating = formData.get("create") === "1";
     assertCompetencyTree(parentId, type);
     assertCompetencyNameUnique(id, parentId, name);
     const db = getDb();
     const existing = db.select().from(competencies).where(eq(competencies.id, id)).get();
     if (existing) {
+      if (creating) throw new InvariantError("Идентификатор уже занят");
       assertTypeChangeAllowed(id, type);
       db.update(competencies)
         .set({ name, type, parentId, description, updatedAt: now() })
@@ -184,7 +203,7 @@ export async function saveCompetencyAction(
         .values({ id, name, type, parentId, description, updatedAt: now() })
         .run();
     }
-    revalidatePath("/admin/competencies");
+    revalidateCompetencyAdmin(id);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return saveCompetencyAction(_prev, formData, true);
@@ -204,11 +223,67 @@ export async function deleteCompetencyAction(
     assertCompetencyDeletable(id);
     const db = getDb();
     db.delete(employeeCompetencyMarks).where(eq(employeeCompetencyMarks.competencyId, id)).run();
+    db.delete(competencyLinks).where(eq(competencyLinks.competencyId, id)).run();
     db.delete(competencies).where(eq(competencies.id, id)).run();
-    revalidatePath("/admin/competencies");
+    revalidateCompetencyAdmin(id);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return deleteCompetencyAction(_prev, formData, true);
+    return asActionError(error);
+  }
+}
+
+const LINK_KINDS: CompetencyLinkKind[] = ["its", "training", "video"];
+
+function assertHttpUrl(raw: string) {
+  const protocol = URL.canParse(raw) ? new URL(raw).protocol : "";
+  if (protocol !== "http:" && protocol !== "https:") {
+    throw new InvariantError("Адрес ссылки: только http:// или https://");
+  }
+}
+
+export async function addCompetencyLinkAction(
+  _prev: ActionResult,
+  formData: FormData,
+  retried = false,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const competencyId = String(formData.get("competencyId") ?? "");
+    const kind = String(formData.get("kind") ?? "") as CompetencyLinkKind;
+    const title = String(formData.get("title") ?? "").trim();
+    const url = String(formData.get("url") ?? "").trim();
+    if (!getCompetency(competencyId)) throw new InvariantError("Компетенция не найдена");
+    if (!LINK_KINDS.includes(kind)) throw new InvariantError("Вид ссылки: ИТС, обучение или видео");
+    if (!title) throw new InvariantError("Нужно название ссылки");
+    assertHttpUrl(url);
+    const db = getDb();
+    const siblings = db.select().from(competencyLinks).where(eq(competencyLinks.competencyId, competencyId)).all();
+    const sortOrder = siblings.reduce((max, link) => Math.max(max, link.sortOrder), -1) + 1;
+    db.insert(competencyLinks).values({ competencyId, kind, title, url, sortOrder, updatedAt: now() }).run();
+    revalidateCompetencyAdmin(competencyId);
+    return null;
+  } catch (error) {
+    if (retryIfClosed(error, retried)) return addCompetencyLinkAction(_prev, formData, true);
+    return asActionError(error);
+  }
+}
+
+export async function deleteCompetencyLinkAction(
+  _prev: ActionResult,
+  formData: FormData,
+  retried = false,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const id = Number(formData.get("linkId"));
+    const db = getDb();
+    const link = db.select().from(competencyLinks).where(eq(competencyLinks.id, id)).get();
+    db.delete(competencyLinks).where(eq(competencyLinks.id, id)).run();
+    revalidateCompetencyAdmin(link?.competencyId);
+    return null;
+  } catch (error) {
+    if (retryIfClosed(error, retried)) return deleteCompetencyLinkAction(_prev, formData, true);
     return asActionError(error);
   }
 }
