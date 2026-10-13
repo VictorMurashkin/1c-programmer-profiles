@@ -166,7 +166,9 @@ export async function assignJobAction(
 
 const MARK_STATUSES: CompetencyMarkStatus[] = ["has", "lacks", "in_progress"];
 
-/** Ставит или снимает личную пометку навыка у вошедшего сотрудника (ADR 0007). Пустой статус снимает пометку. */
+const MARK_NOTE_LIMIT = 1000;
+
+/** Ставит, меняет или снимает личную пометку вошедшего сотрудника (ADR 0007, ADR 0008). Пустой статус снимает пометку и пояснение. */
 export async function setCompetencyMarkAction(
   _prev: ActionResult,
   formData: FormData,
@@ -176,30 +178,42 @@ export async function setCompetencyMarkAction(
     const actor = await requireEmployee();
     const competencyId = String(formData.get("competencyId") ?? "");
     const status = String(formData.get("status") ?? "");
+    const note = String(formData.get("note") ?? "");
     if (status !== "" && !MARK_STATUSES.includes(status as CompetencyMarkStatus)) {
       throw new InvariantError("Пометка: есть, нет или в процессе");
     }
-    if (!markableCompetencies(actor.id, actor.jobId).some((row) => row.id === competencyId)) {
-      throw new InvariantError("Пометить можно только навык своей должности или цели ИПР");
+    if (status !== "" && note.length > MARK_NOTE_LIMIT) {
+      throw new InvariantError("Пояснение: не длиннее 1000 символов");
     }
     const db = getDb();
     const own = and(
       eq(employeeCompetencyMarks.employeeId, actor.id),
       eq(employeeCompetencyMarks.competencyId, competencyId),
     );
+    const existing = db.select().from(employeeCompetencyMarks).where(own).get();
+    const markable = markableCompetencies(actor.id, actor.jobId).some((row) => row.id === competencyId);
     if (status === "") {
       db.delete(employeeCompetencyMarks).where(own).run();
+    } else if (!existing && !markable) {
+      throw new InvariantError("Пометить можно только навык своей должности или цели ИПР");
     } else {
       const t = now();
       db.insert(employeeCompetencyMarks)
-        .values({ employeeId: actor.id, competencyId, status: status as CompetencyMarkStatus, updatedAt: t })
+        .values({
+          employeeId: actor.id,
+          competencyId,
+          status: status as CompetencyMarkStatus,
+          note,
+          updatedAt: t,
+        })
         .onConflictDoUpdate({
           target: [employeeCompetencyMarks.employeeId, employeeCompetencyMarks.competencyId],
-          set: { status: status as CompetencyMarkStatus, updatedAt: t },
+          set: { status: status as CompetencyMarkStatus, note, updatedAt: t },
         })
         .run();
     }
     revalidatePath("/me");
+    revalidatePath("/me/marks");
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return setCompetencyMarkAction(_prev, formData, true);

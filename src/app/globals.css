@@ -407,6 +407,23 @@ details[open] > .skill-summary::before {
   border-bottom: 0;
 }
 
+.mark-row {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.mark-has {
+  background: color-mix(in srgb, var(--frontend-fill) 80%, transparent);
+}
+
+.mark-lacks {
+  background: color-mix(in srgb, var(--security-stroke) 16%, transparent);
+}
+
+.mark-progress {
+  background: color-mix(in srgb, var(--backend-fill) 80%, transparent);
+}
+
 .form-fields {
   border: 0;
   margin: 0;
