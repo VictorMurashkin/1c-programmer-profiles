@@ -13,6 +13,8 @@ import {
   competencyLinks,
   employeeCompetencyMarks,
   employees,
+  idpAssignmentOptions,
+  idpAssignmentQuestions,
   idpAssignments,
   idpItems,
   idpPool,
@@ -88,6 +90,16 @@ function main() {
         )
         .run();
 
+      db.insert(idpAssignmentQuestions)
+        .values({ id: "q-asg-1", assignmentId: "asg-1", prompt: "Что сделать сначала?", sortOrder: 0 })
+        .run();
+      db.insert(idpAssignmentOptions)
+        .values([
+          { id: "opt-asg-1-a", questionId: "q-asg-1", text: "Прочитать", isCorrect: 1, sortOrder: 0 },
+          { id: "opt-asg-1-b", questionId: "q-asg-1", text: "Пропустить", isCorrect: 0, sortOrder: 1 },
+        ])
+        .run();
+
       db.insert(idps)
         .values([
           { id: "idp-active", employeeId: "emp-junior", sourceJobId: "junior", targetJobId: "programmer", createdById: "emp-manager", periodStart: "2026-01-01", periodEnd: "2026-06-30", status: "active", updatedAt: t },
@@ -152,7 +164,7 @@ function main() {
     .deferred(null);
 
   console.log(
-    "upgrade base: employees=4 idps=2 idp_assignments=2 idp_pool=3 idp_items=2 employee_competency_marks=2 competency_links=2",
+    "upgrade base: employees=4 idps=2 idp_assignments=3 idp_pool=3 idp_items=2 employee_competency_marks=2 competency_links=2 idp_assignment_questions=1",
   );
 }
 

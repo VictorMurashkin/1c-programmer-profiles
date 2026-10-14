@@ -70,6 +70,19 @@ CREATE TABLE IF NOT EXISTS idp_assignments (
   archived INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS idp_assignment_questions (
+  id TEXT PRIMARY KEY,
+  assignment_id TEXT NOT NULL REFERENCES idp_assignments(id),
+  prompt TEXT NOT NULL,
+  sort_order INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS idp_assignment_options (
+  id TEXT PRIMARY KEY,
+  question_id TEXT NOT NULL REFERENCES idp_assignment_questions(id),
+  text TEXT NOT NULL,
+  is_correct INTEGER NOT NULL,
+  sort_order INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS idp_pool (
   idp_id TEXT NOT NULL REFERENCES idps(id),
   competency_id TEXT NOT NULL,

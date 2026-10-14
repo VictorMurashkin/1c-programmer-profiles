@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getDb, getSqlite, now } from "../src/db";
 import { migrate } from "../src/db/migrate";
-import { competencies, jobTransitions, jobs, profileSkills, profiles } from "../src/db/schema";
+import { competencies, idpAssignmentOptions, idpAssignmentQuestions, idpAssignments, jobTransitions, jobs, profileSkills, profiles } from "../src/db/schema";
 
 type Seed = {
   jobs: {
@@ -45,6 +45,9 @@ async function main() {
   getSqlite().transaction(() => {
     getSqlite().exec(`
       PRAGMA foreign_keys = OFF;
+      DELETE FROM idp_assignment_options;
+      DELETE FROM idp_assignment_questions;
+      DELETE FROM idp_assignments;
       DELETE FROM profile_skills;
       DELETE FROM profiles;
       DELETE FROM job_transitions;
@@ -89,6 +92,26 @@ async function main() {
           .run();
       }
     }
+    db.insert(idpAssignments)
+      .values({
+        id: "asg-seed-test",
+        competencyId: "comp-avtomatizirovannoe-testirovanie",
+        name: "Навык через тест",
+        learnText: "Как устроен прогон",
+        verifyText: "Тест в справочнике",
+        archived: 0,
+        updatedAt: t,
+      })
+      .run();
+    db.insert(idpAssignmentQuestions)
+      .values({ id: "q-seed-test", assignmentId: "asg-seed-test", prompt: "Где лежит тест задания?", sortOrder: 0 })
+      .run();
+    db.insert(idpAssignmentOptions)
+      .values([
+        { id: "opt-seed-a", questionId: "q-seed-test", text: "В справочнике заданий", isCorrect: 1, sortOrder: 0 },
+        { id: "opt-seed-b", questionId: "q-seed-test", text: "В строке ИПР", isCorrect: 0, sortOrder: 1 },
+      ])
+      .run();
     return true;
   }).deferred(null);
 

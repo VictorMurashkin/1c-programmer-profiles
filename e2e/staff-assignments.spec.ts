@@ -102,7 +102,7 @@ test("правка названия, узнать и проверить сохр
   await page.getByLabel(/^Проверить/).fill(nextVerify);
   await Promise.all([
     page.waitForResponse((response) => response.request().method() === "POST"),
-    page.getByRole("button", { name: "Сохранить" }).click(),
+    page.getByRole("button", { name: "Сохранить", exact: true }).click(),
   ]);
   await page.reload();
   await expect(page.getByLabel(/^Название/)).toHaveValue(nextName);

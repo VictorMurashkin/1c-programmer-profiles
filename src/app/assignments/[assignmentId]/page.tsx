@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
-import { archiveAssignmentAction, saveAssignmentAction } from "@/app/idp-actions";
+import { AssignmentTestFields } from "@/components/AssignmentTestFields";
+import { archiveAssignmentAction, saveAssignmentAction, saveAssignmentTestAction } from "@/app/idp-actions";
 import { getSessionEmployee } from "@/lib/auth";
 import { canEditAssignmentCatalog } from "@/lib/invariants";
-import { getCompetency, getIdpAssignment } from "@/lib/queries";
+import { getCompetency, getIdpAssignment, listAssignmentTest } from "@/lib/queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
   const row = getIdpAssignment(assignmentId);
   if (!row) notFound();
   const competency = getCompetency(row.competencyId);
+  const test = listAssignmentTest(row.id);
 
   return (
     <div className="space-y-6">
@@ -53,6 +55,19 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
           </button>
         </ActionForm>
       ) : null}
+      <ActionForm action={saveAssignmentTestAction} className="panel panel-pad space-y-3 text-sm">
+        <h2 className="section-title mb-0">Тест</h2>
+        <input type="hidden" name="id" value={row.id} />
+        <AssignmentTestFields
+          initial={test.map((question) => ({
+            prompt: question.prompt,
+            options: question.options.map((option) => ({ text: option.text, isCorrect: option.isCorrect })),
+          }))}
+        />
+        <button className="btn-primary" type="submit">
+          Сохранить тест
+        </button>
+      </ActionForm>
       <ActionForm action={archiveAssignmentAction}>
         <input type="hidden" name="id" value={row.id} />
         <button className={row.archived === 1 ? "btn" : "btn-archive w-fit"} type="submit">
