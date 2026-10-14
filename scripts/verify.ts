@@ -58,17 +58,31 @@ function run(step: { command: string; args: string[] }): Promise<{ code: number;
   });
 }
 
-function countPhrase(output: string, label: string): string | null {
-  const match = output.match(new RegExp(`(\\d+)\\s+${label}`));
-  if (!match || match[1] === "0") return null;
-  return `${match[1]} ${label}`;
+const PLAYWRIGHT_SUMMARY = {
+  passed: /^(\d+) passed(?:\s+\([^)]*\))?$/,
+  failed: /^(\d+) failed$/,
+  skipped: /^(\d+) skipped$/,
+  flaky: /^(\d+) flaky$/,
+  "did not run": /^(\d+) did not run$/,
+} as const;
+
+/** Число из итоговой строки Playwright, не из названия теста и не из [WebServer]. */
+function countPhrase(output: string, label: keyof typeof PLAYWRIGHT_SUMMARY): string | null {
+  const pattern = PLAYWRIGHT_SUMMARY[label];
+  let found: string | null = null;
+  for (const line of output.split(/\r?\n/)) {
+    if (line.includes("[WebServer]")) continue;
+    const match = line.trim().match(pattern);
+    if (match && match[1] !== "0") found = `${match[1]} ${label}`;
+  }
+  return found;
 }
 
 /** Успешный итог Playwright: passed и, если были, skipped и flaky. */
 function e2eSummary(output: string): string | null {
   const passed = countPhrase(output, "passed");
   if (!passed) return null;
-  const extra = ["skipped", "flaky"].map((label) => countPhrase(output, label)).filter((part) => part !== null);
+  const extra = (["skipped", "flaky"] as const).map((label) => countPhrase(output, label)).filter((part) => part !== null);
   return [passed, ...extra].join(", ");
 }
 

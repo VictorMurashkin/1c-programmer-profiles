@@ -34,7 +34,7 @@ description: Ведёт доработку этого репозитория п�
 
 ## Субагенты
 
-`spec-check` и `pr-review` сами MCP и shell не вызывают. Основной агент передаёт `spec-check` текст issue, а `pr-review` — текст issue и вывод `git diff origin/main...HEAD`.
+`spec-check` и `pr-review` сами MCP и shell не вызывают. Основной агент передаёт `spec-check` текст issue, а `pr-review` — текст issue, вывод `git diff origin/main...HEAD` и выдержки из `CONTEXT.md`, `docs/adr/` и `.cursor/rules/learned-cases.mdc`, которые относятся к этому diff.
 
 ## После pull request
 
