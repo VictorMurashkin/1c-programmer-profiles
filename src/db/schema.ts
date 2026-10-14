@@ -111,6 +111,25 @@ export const idpAssignments = sqliteTable("idp_assignments", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+export const idpAssignmentQuestions = sqliteTable("idp_assignment_questions", {
+  id: text("id").primaryKey(),
+  assignmentId: text("assignment_id")
+    .notNull()
+    .references(() => idpAssignments.id),
+  prompt: text("prompt").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+});
+
+export const idpAssignmentOptions = sqliteTable("idp_assignment_options", {
+  id: text("id").primaryKey(),
+  questionId: text("question_id")
+    .notNull()
+    .references(() => idpAssignmentQuestions.id),
+  text: text("text").notNull(),
+  isCorrect: integer("is_correct").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+});
+
 export const idpPool = sqliteTable(
   "idp_pool",
   {

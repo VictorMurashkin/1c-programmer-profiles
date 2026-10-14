@@ -7,6 +7,8 @@ import {
   competencyLinks,
   employeeCompetencyMarks,
   employees,
+  idpAssignmentOptions,
+  idpAssignmentQuestions,
   idpAssignments,
   idpItems,
   idpPool,
@@ -409,6 +411,31 @@ export function listActiveIdpAssignmentsFor(competencyIds: string[]) {
 export function getIdpAssignment(id: string) {
   ensureSchema();
   return getDb().select().from(idpAssignments).where(eq(idpAssignments.id, id)).get();
+}
+
+export type AssignmentTestQuestion = { id: string; prompt: string; options: { id: string; text: string; isCorrect: boolean }[] };
+
+/** Тест справочника. Верный вариант виден только редактору карточки. */
+export function listAssignmentTest(assignmentId: string): AssignmentTestQuestion[] {
+  ensureSchema();
+  const db = getDb();
+  const questions = db
+    .select()
+    .from(idpAssignmentQuestions)
+    .where(eq(idpAssignmentQuestions.assignmentId, assignmentId))
+    .orderBy(asc(idpAssignmentQuestions.sortOrder))
+    .all();
+  return questions.map((question) => ({
+    id: question.id,
+    prompt: question.prompt,
+    options: db
+      .select()
+      .from(idpAssignmentOptions)
+      .where(eq(idpAssignmentOptions.questionId, question.id))
+      .orderBy(asc(idpAssignmentOptions.sortOrder))
+      .all()
+      .map((option) => ({ id: option.id, text: option.text, isCorrect: option.isCorrect === 1 })),
+  }));
 }
 
 export function assignmentCompetencies() {

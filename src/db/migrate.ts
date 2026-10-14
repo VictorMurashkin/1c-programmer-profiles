@@ -70,6 +70,19 @@ CREATE TABLE IF NOT EXISTS idp_assignments (
   archived INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS idp_assignment_questions (
+  id TEXT PRIMARY KEY,
+  assignment_id TEXT NOT NULL REFERENCES idp_assignments(id),
+  prompt TEXT NOT NULL,
+  sort_order INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS idp_assignment_options (
+  id TEXT PRIMARY KEY,
+  question_id TEXT NOT NULL REFERENCES idp_assignment_questions(id),
+  text TEXT NOT NULL,
+  is_correct INTEGER NOT NULL,
+  sort_order INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS idp_pool (
   idp_id TEXT NOT NULL REFERENCES idps(id),
   competency_id TEXT NOT NULL,
@@ -294,19 +307,37 @@ function retargetMergedCompetencies() {
         )
         .run(RELEASES_ID);
     }
-    sqlite
-      .prepare(
-        `DELETE FROM idp_assignments
-         WHERE competency_id = ?
+    const dropTests = (whereSql: string, ...params: string[]) => {
+      if (!tableExists("idp_assignment_questions")) return;
+      if (tableExists("idp_assignment_options")) {
+        sqlite
+          .prepare(
+            `DELETE FROM idp_assignment_options
+             WHERE question_id IN (
+               SELECT id FROM idp_assignment_questions
+               WHERE assignment_id IN (SELECT id FROM idp_assignments WHERE ${whereSql})
+             )`,
+          )
+          .run(...params);
+      }
+      sqlite
+        .prepare(
+          `DELETE FROM idp_assignment_questions
+           WHERE assignment_id IN (SELECT id FROM idp_assignments WHERE ${whereSql})`,
+        )
+        .run(...params);
+    };
+    const duplicateWhere = `competency_id = ?
            AND EXISTS (
              SELECT 1 FROM idp_assignments AS kept
              WHERE kept.competency_id = ?
                AND kept.name = idp_assignments.name
                AND kept.archived = 0
-           )`,
-      )
-      .run(BROKER_ID, ESB_ID);
+           )`;
+    dropTests(duplicateWhere, BROKER_ID, ESB_ID);
+    sqlite.prepare(`DELETE FROM idp_assignments WHERE ${duplicateWhere}`).run(BROKER_ID, ESB_ID);
     sqlite.prepare("UPDATE idp_assignments SET competency_id = ? WHERE competency_id = ?").run(ESB_ID, BROKER_ID);
+    dropTests("competency_id = ?", RELEASES_ID);
     sqlite.prepare("DELETE FROM idp_assignments WHERE competency_id = ?").run(RELEASES_ID);
   }
   move("competency_links", ["id"]);

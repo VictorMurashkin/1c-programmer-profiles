@@ -3,8 +3,8 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
-import { getDb, now, retryIfClosed } from "@/db";
-import { idpAssignments, idpItems, idps } from "@/db/schema";
+import { getDb, getSqlite, now, retryIfClosed } from "@/db";
+import { idpAssignmentOptions, idpAssignmentQuestions, idpAssignments, idpItems, idps } from "@/db/schema";
 import { requireEmployee, type SessionEmployee } from "@/lib/auth";
 import {
   expandIdpPool,
@@ -444,6 +444,81 @@ export async function archiveAssignmentAction(_prev: ActionResult, formData: For
   } catch (error) {
     if (retryIfClosed(error, retried)) return archiveAssignmentAction(_prev, formData, true);
     if (isUniqueConstraint(error)) return { error: "Такое задание уже есть в справочнике этой компетенции" };
+    return asActionError(error);
+  }
+}
+
+function readAssignmentTest(formData: FormData) {
+  const prompts = formData.getAll("prompt").map((value) => String(value).trim());
+  const questions = prompts
+    .map((prompt, index) => {
+      const options = formData.getAll(`option-${index}`).map((value) => String(value).trim());
+      const correct = new Set(formData.getAll(`correct-${index}`).map((value) => Number(value)));
+      return { prompt, options, correct };
+    })
+    .filter((question) => question.prompt.length > 0 || question.options.some((text) => text.length > 0));
+  for (const question of questions) {
+    if (!question.prompt) throw new InvariantError("Нужен текст вопроса");
+    if (question.options.length < 2 || question.options.some((text) => text.length === 0)) {
+      throw new InvariantError("У вопроса нужно хотя бы два варианта");
+    }
+    const correctCount = question.options.filter((_, index) => question.correct.has(index)).length;
+    if (correctCount !== 1) throw new InvariantError("У вопроса должен быть ровно один верный вариант");
+  }
+  return questions;
+}
+
+export async function saveAssignmentTestAction(
+  _prev: ActionResult,
+  formData: FormData,
+  retried = false,
+): Promise<ActionResult> {
+  try {
+    const actor = await requireEmployee();
+    if (!canEditAssignmentCatalog(actor)) {
+      throw new InvariantError("Справочник заданий правят руководители и админ");
+    }
+    const id = String(formData.get("id") ?? "");
+    const existing = getIdpAssignment(id);
+    if (!existing) throw new InvariantError("Задание не найдено");
+    if (existing.archived !== 0) throw new InvariantError("Скрытое задание сначала верните в справочник");
+    const questions = readAssignmentTest(formData);
+    const db = getDb();
+    const previous = db
+      .select({ id: idpAssignmentQuestions.id })
+      .from(idpAssignmentQuestions)
+      .where(eq(idpAssignmentQuestions.assignmentId, id))
+      .all();
+    getSqlite()
+      .transaction(() => {
+        for (const question of previous) {
+          db.delete(idpAssignmentOptions).where(eq(idpAssignmentOptions.questionId, question.id)).run();
+        }
+        db.delete(idpAssignmentQuestions).where(eq(idpAssignmentQuestions.assignmentId, id)).run();
+        questions.forEach((question, questionIndex) => {
+          const questionId = newId("q");
+          db.insert(idpAssignmentQuestions)
+            .values({ id: questionId, assignmentId: id, prompt: question.prompt, sortOrder: questionIndex })
+            .run();
+          question.options.forEach((text, optionIndex) => {
+            db.insert(idpAssignmentOptions)
+              .values({
+                id: newId("opt"),
+                questionId,
+                text,
+                isCorrect: question.correct.has(optionIndex) ? 1 : 0,
+                sortOrder: optionIndex,
+              })
+              .run();
+          });
+        });
+        return true;
+      })
+      .deferred(null);
+    revalidatePath(`/assignments/${id}`);
+    return null;
+  } catch (error) {
+    if (retryIfClosed(error, retried)) return saveAssignmentTestAction(_prev, formData, true);
     return asActionError(error);
   }
 }
