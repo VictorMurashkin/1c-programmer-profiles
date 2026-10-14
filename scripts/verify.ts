@@ -70,7 +70,7 @@ function firstError(output: string): string {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
-  const failed = lines.find((line) => /error|failed|Error/i.test(line));
+  const failed = lines.find((line) => /error TS\d+|\bError:|\b[1-9]\d* failed\b|✖|Failed to compile/.test(line));
   const text = (failed ?? lines.at(-1) ?? "код выхода не 0").replace(/\|/g, "/");
   return text.length > 240 ? `${text.slice(0, 237)}...` : text;
 }
