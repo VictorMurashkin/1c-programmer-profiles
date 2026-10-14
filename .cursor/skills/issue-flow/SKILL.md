@@ -26,7 +26,15 @@ description: Ведёт доработку этого репозитория п�
 
 ## Сбой GitHub
 
-Если `issues_create` или `pull_request_create` вернули ошибку, сначала найти объект (`issues_get_detail`, список pull request на ветке). Уже есть — не повторять вызов.
+Если `issues_create` или `pull_request_create` вернули ошибку, список `issues_assigned_to_me` не использовать: он неполный.
+
+1. Перед вызовом запомнить наибольший номер, который уже встречался. Нумерация issue и pull request общая.
+2. После ошибки — `issues_get_detail` по номерам выше него по очереди, пока не найдётся объект с тем же заголовком или не вернётся «не найдено». Для pull request сверить ветку через `pull_request_get_detail`.
+3. Нашли — не повторять. Не нашли — один повтор.
+
+## Субагенты
+
+`spec-check` и `pr-review` сами MCP и shell не вызывают. Основной агент передаёт `spec-check` текст issue, а `pr-review` — текст issue и вывод `git diff origin/main...HEAD`.
 
 ## После pull request
 

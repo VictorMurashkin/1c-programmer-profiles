@@ -1,6 +1,6 @@
 /**
  * Один прогон проверок перед коммитом.
- * Порт 3000 не освобождает: если он занят, выходит до первой команды.
+ * Порты 3000 и 3100 не освобождает: если любой занят, выходит до первой команды.
  * Упавшая команда останавливает следующие, таблица для pull request печатается всё равно.
  */
 import { spawn } from "node:child_process";
@@ -58,21 +58,48 @@ function run(step: { command: string; args: string[] }): Promise<{ code: number;
   });
 }
 
-/** Число прошедших сценариев Playwright, если строка итога есть. */
-function e2eSummary(output: string): string | null {
-  const match = output.match(/(\d+)\s+passed(?:\s+\((\d+)\s+skipped\))?/);
-  if (!match) return null;
-  return match[2] ? `${match[1]} passed, ${match[2]} skipped` : `${match[1]} passed`;
+function countPhrase(output: string, label: string): string | null {
+  const match = output.match(new RegExp(`(\\d+)\\s+${label}`));
+  if (!match || match[1] === "0") return null;
+  return `${match[1]} ${label}`;
 }
 
-function firstError(output: string): string {
+/** Успешный итог Playwright: passed и, если были, skipped и flaky. */
+function e2eSummary(output: string): string | null {
+  const passed = countPhrase(output, "passed");
+  if (!passed) return null;
+  const extra = ["skipped", "flaky"].map((label) => countPhrase(output, label)).filter((part) => part !== null);
+  return [passed, ...extra].join(", ");
+}
+
+function clip(text: string): string {
+  const clean = text.replace(/\|/g, "/");
+  return clean.length > 240 ? `${clean.slice(0, 237)}...` : clean;
+}
+
+/** Строка причины для таблицы. Строки [WebServer] не берутся. */
+function stepFailure(step: { args: string[] }, code: number, output: string): string {
   const lines = output
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-  const failed = lines.find((line) => /error TS\d+|\bError:|\b[1-9]\d* failed\b|✖|Failed to compile/.test(line));
-  const text = (failed ?? lines.at(-1) ?? "код выхода не 0").replace(/\|/g, "/");
-  return text.length > 240 ? `${text.slice(0, 237)}...` : text;
+    .filter((line) => line.length > 0 && !line.includes("[WebServer]"));
+  let picked: string | null = null;
+  if (step.args.includes("test:e2e")) {
+    const failed = countPhrase(output, "failed");
+    const didNotRun = countPhrase(output, "did not run");
+    if (failed) picked = didNotRun ? `${failed}, ${didNotRun}` : failed;
+  } else if (step.args.includes("--noEmit")) {
+    picked = lines.find((line) => /error TS\d+/.test(line)) ?? null;
+  } else if (step.args.includes("lint")) {
+    picked = lines.find((line) => /\berror\b/i.test(line) && !/\b0 errors\b/i.test(line)) ?? null;
+  } else {
+    picked = lines.find((line) => /error TS\d+|\bError:|✖|Failed to compile/.test(line)) ?? null;
+  }
+  let text = picked ?? `код выхода ${code}`;
+  if (/missing bootstrap script|app-paths-manifest\.json/.test(output)) {
+    text += ". Удалите .next и повторите прогон.";
+  }
+  return clip(text);
 }
 
 function printTable(rows: Row[]) {
@@ -83,8 +110,14 @@ function printTable(rows: Row[]) {
 
 async function main() {
   const rows: Row[] = STEPS.map((step) => ({ command: label(step), result: "не запускалась" }));
-  if (await portBusy(3000)) {
-    console.error("Порт 3000 занят. Остановите dev-сервер и запустите npm run verify снова. Сервер не остановлен.");
+  const busy = [];
+  for (const port of [3000, 3100]) {
+    if (await portBusy(port)) busy.push(port);
+  }
+  if (busy.length > 0) {
+    console.error(
+      `Порт ${busy.join(" и ")} занят. Остановите процесс и запустите npm run verify снова. Процессы не остановлены.`,
+    );
     printTable(rows);
     process.exit(1);
   }
@@ -98,7 +131,7 @@ async function main() {
     if (code === 0) {
       rows[i].result = step.args.includes("test:e2e") ? (e2eSummary(output) ?? "ok") : "ok";
     } else {
-      rows[i].result = firstError(output);
+      rows[i].result = stepFailure(step, code, output);
       failed = true;
     }
   }
