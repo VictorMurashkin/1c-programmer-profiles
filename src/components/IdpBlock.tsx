@@ -196,6 +196,12 @@ export function IdpBlock({
                             </button>
                           </ActionForm>
                         ) : null}
+                        {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
+                          <p className="mt-2 text-sm">
+                            Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
+                            {attempts.get(item.id)?.count}
+                          </p>
+                        ) : null}
                         {manage && !acceptedRow ? (
                           <ActionForm action={acceptIdpItemAction} className="mt-2">
                             <input type="hidden" name="itemId" value={item.id} />
