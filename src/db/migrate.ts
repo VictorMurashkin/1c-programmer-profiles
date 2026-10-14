@@ -106,6 +106,19 @@ CREATE TABLE IF NOT EXISTS idp_items (
   accepted_at INTEGER,
   sort_order INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS idp_item_questions (
+  id TEXT PRIMARY KEY,
+  item_id INTEGER NOT NULL REFERENCES idp_items(id),
+  prompt TEXT NOT NULL,
+  sort_order INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS idp_item_options (
+  id TEXT PRIMARY KEY,
+  question_id TEXT NOT NULL REFERENCES idp_item_questions(id),
+  text TEXT NOT NULL,
+  is_correct INTEGER NOT NULL,
+  sort_order INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS employee_competency_marks (
   employee_id TEXT NOT NULL REFERENCES employees(id),
   competency_id TEXT NOT NULL REFERENCES competencies(id),

@@ -16,6 +16,8 @@ import {
   idpAssignmentOptions,
   idpAssignmentQuestions,
   idpAssignments,
+  idpItemOptions,
+  idpItemQuestions,
   idpItems,
   idpPool,
   idps,
@@ -111,7 +113,8 @@ function main() {
         .values(skills.map((s) => ({ idpId: "idp-active", competencyId: s.competencyId, competencyName: s.competencyName, requiredLevel: s.level })))
         .run();
 
-      db.insert(idpItems)
+      const items = db
+        .insert(idpItems)
         .values([
           {
             idpId: "idp-active",
@@ -144,7 +147,20 @@ function main() {
             sortOrder: 1,
           },
         ])
-        .run();
+        .returning({ id: idpItems.id, assignmentId: idpItems.assignmentId })
+        .all();
+      const withTest = items.find((item) => item.assignmentId === "asg-1");
+      if (withTest) {
+        db.insert(idpItemQuestions)
+          .values({ id: "iq-asg-1", itemId: withTest.id, prompt: "Что сделать сначала?", sortOrder: 0 })
+          .run();
+        db.insert(idpItemOptions)
+          .values([
+            { id: "iopt-asg-1-a", questionId: "iq-asg-1", text: "Прочитать", isCorrect: 1, sortOrder: 0 },
+            { id: "iopt-asg-1-b", questionId: "iq-asg-1", text: "Пропустить", isCorrect: 0, sortOrder: 1 },
+          ])
+          .run();
+      }
 
       db.insert(employeeCompetencyMarks)
         .values([
@@ -164,7 +180,7 @@ function main() {
     .deferred(null);
 
   console.log(
-    "upgrade base: employees=4 idps=2 idp_assignments=3 idp_pool=3 idp_items=2 employee_competency_marks=2 competency_links=2 idp_assignment_questions=1",
+    "upgrade base: employees=4 idps=2 idp_assignments=3 idp_pool=3 idp_items=2 employee_competency_marks=2 competency_links=2 idp_assignment_questions=1 idp_item_questions=1",
   );
 }
 
