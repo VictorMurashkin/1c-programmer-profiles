@@ -10,6 +10,8 @@ import {
   idpAssignmentOptions,
   idpAssignmentQuestions,
   idpAssignments,
+  idpItemOptions,
+  idpItemQuestions,
   idpItems,
   idpPool,
   idps,
@@ -21,7 +23,7 @@ import {
 } from "@/db/schema";
 import { sectionForType } from "@/lib/invariants";
 
-const SCHEMA_TICK = 6;
+const SCHEMA_TICK = 7;
 let appliedTick = 0;
 export function ensureSchema() {
   if (appliedTick !== SCHEMA_TICK) {
@@ -436,6 +438,24 @@ export function listAssignmentTest(assignmentId: string): AssignmentTestQuestion
       .all()
       .map((option) => ({ id: option.id, text: option.text, isCorrect: option.isCorrect === 1 })),
   }));
+}
+
+export function listItemQuestionPrompts(itemIds: number[]) {
+  ensureSchema();
+  const prompts = new Map<number, string[]>();
+  if (itemIds.length === 0) return prompts;
+  const questions = getDb()
+    .select()
+    .from(idpItemQuestions)
+    .where(inArray(idpItemQuestions.itemId, itemIds))
+    .orderBy(asc(idpItemQuestions.sortOrder))
+    .all();
+  for (const question of questions) {
+    const list = prompts.get(question.itemId) ?? [];
+    list.push(question.prompt);
+    prompts.set(question.itemId, list);
+  }
+  return prompts;
 }
 
 export function assignmentCompetencies() {

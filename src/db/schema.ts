@@ -162,6 +162,25 @@ export const idpItems = sqliteTable("idp_items", {
   sortOrder: integer("sort_order").notNull(),
 });
 
+export const idpItemQuestions = sqliteTable("idp_item_questions", {
+  id: text("id").primaryKey(),
+  itemId: integer("item_id")
+    .notNull()
+    .references(() => idpItems.id),
+  prompt: text("prompt").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+});
+
+export const idpItemOptions = sqliteTable("idp_item_options", {
+  id: text("id").primaryKey(),
+  questionId: text("question_id")
+    .notNull()
+    .references(() => idpItemQuestions.id),
+  text: text("text").notNull(),
+  isCorrect: integer("is_correct").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+});
+
 export const employeeCompetencyMarks = sqliteTable(
   "employee_competency_marks",
   {

@@ -4,7 +4,15 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb, getSqlite, now, retryIfClosed } from "@/db";
-import { idpAssignmentOptions, idpAssignmentQuestions, idpAssignments, idpItems, idps } from "@/db/schema";
+import {
+  idpAssignmentOptions,
+  idpAssignmentQuestions,
+  idpAssignments,
+  idpItemOptions,
+  idpItemQuestions,
+  idpItems,
+  idps,
+} from "@/db/schema";
 import { requireEmployee, type SessionEmployee } from "@/lib/auth";
 import {
   expandIdpPool,
@@ -27,6 +35,7 @@ import {
   getEmployee,
   getIdp,
   getIdpAssignment,
+  listAssignmentTest,
   getProfileByJob,
   listActiveIdpAssignments,
   listIdpPool,
@@ -52,6 +61,28 @@ function asActionError(error: unknown): ActionResult {
 
 function isUniqueConstraint(error: unknown) {
   return error instanceof Error && /UNIQUE constraint failed/i.test(error.message);
+}
+
+function copyAssignmentTest(itemId: number, assignmentId: string | null) {
+  if (!assignmentId) return;
+  const db = getDb();
+  listAssignmentTest(assignmentId).forEach((question, questionIndex) => {
+    const questionId = newId("iq");
+    db.insert(idpItemQuestions)
+      .values({ id: questionId, itemId, prompt: question.prompt, sortOrder: questionIndex })
+      .run();
+    question.options.forEach((option, optionIndex) => {
+      db.insert(idpItemOptions)
+        .values({
+          id: newId("iopt"),
+          questionId,
+          text: option.text,
+          isCorrect: option.isCorrect ? 1 : 0,
+          sortOrder: optionIndex,
+        })
+        .run();
+    });
+  });
 }
 
 function newId(prefix: string) {
@@ -211,24 +242,32 @@ export async function addIdpItemAction(_prev: ActionResult, formData: FormData, 
       }
       const pool = poolRow(idp.id, competencyId);
       assertAssignableCompetency(competencyId);
-      db.insert(idpItems)
-        .values({
-          idpId: idp.id,
-          assignmentId: catalogId,
-          competencyId,
-          competencyName: pool.competencyName,
-          requiredLevel: pool.requiredLevel,
-          assignmentName,
-          learnText,
-          verifyText,
-          dueOn,
-          status: "not_started",
-          acceptedById: null,
-          acceptedAt: null,
-          sortOrder: nextItemSort(idp.id),
+      getSqlite()
+        .transaction(() => {
+          const item = db
+            .insert(idpItems)
+            .values({
+              idpId: idp.id,
+              assignmentId: catalogId,
+              competencyId,
+              competencyName: pool.competencyName,
+              requiredLevel: pool.requiredLevel,
+              assignmentName,
+              learnText,
+              verifyText,
+              dueOn,
+              status: "not_started",
+              acceptedById: null,
+              acceptedAt: null,
+              sortOrder: nextItemSort(idp.id),
+            })
+            .returning({ id: idpItems.id })
+            .get();
+          copyAssignmentTest(item.id, catalogId);
+          db.update(idps).set({ updatedAt: now() }).where(eq(idps.id, idp.id)).run();
+          return true;
         })
-        .run();
-      db.update(idps).set({ updatedAt: now() }).where(eq(idps.id, idp.id)).run();
+        .deferred(null);
       revalidateIdp(idp.employeeId, idp.id);
       return null;
     } catch (error) {
@@ -270,7 +309,22 @@ export async function deleteIdpItemAction(_prev: ActionResult, formData: FormDat
     const item = getIdpItem(Number(formData.get("itemId")));
     if (!item) throw new InvariantError("Задание не найдено");
     const idp = requireActiveManagedIdp(actor, item.idpId);
-    getDb().delete(idpItems).where(eq(idpItems.id, item.id)).run();
+    const db = getDb();
+    const questions = db
+      .select({ id: idpItemQuestions.id })
+      .from(idpItemQuestions)
+      .where(eq(idpItemQuestions.itemId, item.id))
+      .all();
+    getSqlite()
+      .transaction(() => {
+        for (const question of questions) {
+          db.delete(idpItemOptions).where(eq(idpItemOptions.questionId, question.id)).run();
+        }
+        db.delete(idpItemQuestions).where(eq(idpItemQuestions.itemId, item.id)).run();
+        db.delete(idpItems).where(eq(idpItems.id, item.id)).run();
+        return true;
+      })
+      .deferred(null);
     maybeCompleteIdp(idp.id);
     revalidateIdp(idp.employeeId, idp.id);
     return null;

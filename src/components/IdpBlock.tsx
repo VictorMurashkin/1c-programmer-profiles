@@ -18,6 +18,7 @@ import {
   listActiveIdpAssignmentsFor,
   listCompetencyLinks,
   listIdpItems,
+  listItemQuestionPrompts,
   listIdps,
 } from "@/lib/queries";
 import type { idpItems, idpPool, idps } from "@/db/schema";
@@ -112,6 +113,7 @@ export function IdpBlock({
   const accepted = items.filter((item) => item.acceptedAt != null).length;
   const groups = groupItems(items);
   const links = listCompetencyLinks();
+  const prompts = listItemQuestionPrompts(items.map((item) => item.id));
   const competencyName = new Map(pool.map((row) => [row.competencyId, row.competencyName]));
   const catalog = listActiveIdpAssignmentsFor(pool.map((row) => row.competencyId)).map((assignment) => ({
     ...assignment,
@@ -243,7 +245,16 @@ export function IdpBlock({
                         <p className="whitespace-pre-wrap">{item.learnText}</p>
                         <CompetencyLinks links={links.get(group.competencyId) ?? []} />
                       </td>
-                      <td className="whitespace-pre-wrap">{item.verifyText}</td>
+                      <td className="whitespace-pre-wrap">
+                        <p>{item.verifyText}</p>
+                        {(prompts.get(item.id) ?? []).length > 0 ? (
+                          <ul className="mt-2">
+                            {(prompts.get(item.id) ?? []).map((prompt, index) => (
+                              <li key={`${item.id}-${index}`}>{prompt}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </td>
                       <td>{item.dueOn ?? "—"}</td>
                     </tr>
                   );
