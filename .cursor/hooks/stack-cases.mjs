@@ -15,6 +15,11 @@ function readStdin() {
   });
 }
 
+function isStackCommand(input) {
+  const command = JSON.stringify(input.command ?? input.tool_input ?? input);
+  return /(^|[^\w.-])(npm|npx|next|node)([^\w-]|$)/.test(command);
+}
+
 function emit(payload) {
   process.stdout.write(`${JSON.stringify(payload)}\n`);
 }
@@ -33,12 +38,16 @@ if (mode === "failure") {
     emit({});
     process.exit(0);
   }
+  const tool = String(input.tool_name ?? "");
+  if (tool !== "Shell" || !isStackCommand(input)) {
+    emit({});
+    process.exit(0);
+  }
   const message = String(input.error_message ?? "").trim().slice(0, 500);
   if (!message) {
     emit({});
     process.exit(0);
   }
-  const tool = String(input.tool_name ?? "tool");
   const line = JSON.stringify({ tool, message });
   let prior = "";
   try {
