@@ -224,14 +224,7 @@ export function IdpBlock({
                               </label>
                               <label className="lbl">
                                 Срок
-                                <input
-                                  className="field"
-                                  type="date"
-                                  name="dueOn"
-                                  defaultValue={item.dueOn ?? ""}
-                                  min={idp.periodStart}
-                                  max={idp.periodEnd}
-                                />
+                                <input className="field" type="date" name="dueOn" defaultValue={item.dueOn ?? ""} />
                               </label>
                               <button className="btn w-fit" type="submit">
                                 Сохранить тексты
