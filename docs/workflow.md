@@ -46,7 +46,7 @@ flowchart LR
 | Типы | `npx tsc --noEmit` | внутри verify | да |
 | Сборка | `npm run build` | внутри verify | да |
 | Сценарии | `npm run test:e2e` | внутри verify | да |
-| Обновление базы | `npm run check:upgrade -- <база>` | по снимку от человека | да, в pull request |
+| Обновление базы | `npm run check:upgrade -- <база>` | по снимку от человека; на сервере — внутри `update-server.ps1` до сборки | да, в pull request |
 
 **Seed.** Инварианты `docs/seed-contract.md`, ровно семь заполненных профилей, фикстура совпадает с `data.json` и целая сама по себе.
 
