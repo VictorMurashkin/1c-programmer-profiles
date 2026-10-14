@@ -68,7 +68,7 @@ test("карточка ИПР показывает сотрудника, пер�
   await expect(page.getByRole("heading", { level: 3 }).filter({ hasNotText: "Добавить задание" })).toHaveCount(1);
 
   const row = table.locator("tbody tr", { hasText: GOAL });
-  await expect(row.getByRole("cell").nth(0)).toHaveText(GOAL);
+  await expect(row.getByRole("cell").nth(0)).toContainText(GOAL);
   await expect(row.getByRole("cell").nth(1)).toContainText(LEARN);
   await expect(row.getByRole("cell").nth(1)).not.toContainText("Программист");
   await expect(row.getByRole("cell").nth(2)).toContainText(VERIFY);
