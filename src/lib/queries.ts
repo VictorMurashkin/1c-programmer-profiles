@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { migrate } from "@/db/migrate";
 import {
@@ -10,6 +10,7 @@ import {
   idpAssignmentOptions,
   idpAssignmentQuestions,
   idpAssignments,
+  idpItemAttempts,
   idpItemOptions,
   idpItemQuestions,
   idpItems,
@@ -23,7 +24,7 @@ import {
 } from "@/db/schema";
 import { sectionForType } from "@/lib/invariants";
 
-const SCHEMA_TICK = 7;
+const SCHEMA_TICK = 8;
 let appliedTick = 0;
 export function ensureSchema() {
   if (appliedTick !== SCHEMA_TICK) {
@@ -456,6 +457,58 @@ export function listItemQuestionPrompts(itemIds: number[]) {
     prompts.set(question.itemId, list);
   }
   return prompts;
+}
+
+export type ItemTestForTake = { id: string; prompt: string; options: { id: string; text: string }[] };
+
+/** Вопросы строки без признака верного ответа: его нельзя отдавать на страницу. */
+export function listItemTestsForTake(itemIds: number[]) {
+  ensureSchema();
+  const tests = new Map<number, ItemTestForTake[]>();
+  if (itemIds.length === 0) return tests;
+  const db = getDb();
+  const questions = db
+    .select({
+      id: idpItemQuestions.id,
+      itemId: idpItemQuestions.itemId,
+      prompt: idpItemQuestions.prompt,
+      sortOrder: idpItemQuestions.sortOrder,
+    })
+    .from(idpItemQuestions)
+    .where(inArray(idpItemQuestions.itemId, itemIds))
+    .orderBy(asc(idpItemQuestions.sortOrder))
+    .all();
+  for (const question of questions) {
+    const options = db
+      .select({ id: idpItemOptions.id, text: idpItemOptions.text })
+      .from(idpItemOptions)
+      .where(eq(idpItemOptions.questionId, question.id))
+      .orderBy(asc(idpItemOptions.sortOrder))
+      .all();
+    const list = tests.get(question.itemId) ?? [];
+    list.push({ id: question.id, prompt: question.prompt, options });
+    tests.set(question.itemId, list);
+  }
+  return tests;
+}
+
+export function listItemAttemptState(itemIds: number[]) {
+  ensureSchema();
+  const state = new Map<number, { count: number; passed: boolean | null }>();
+  if (itemIds.length === 0) return state;
+  const rows = getDb()
+    .select()
+    .from(idpItemAttempts)
+    .where(inArray(idpItemAttempts.itemId, itemIds))
+    .orderBy(asc(idpItemAttempts.createdAt), asc(sql`rowid`))
+    .all();
+  for (const row of rows) {
+    const current = state.get(row.itemId) ?? { count: 0, passed: null };
+    current.count += 1;
+    current.passed = row.passed === 1;
+    state.set(row.itemId, current);
+  }
+  return state;
 }
 
 export function assignmentCompetencies() {

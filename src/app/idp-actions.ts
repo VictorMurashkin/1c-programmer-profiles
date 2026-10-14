@@ -8,6 +8,7 @@ import {
   idpAssignmentOptions,
   idpAssignmentQuestions,
   idpAssignments,
+  idpItemAttempts,
   idpItemOptions,
   idpItemQuestions,
   idpItems,
@@ -321,6 +322,7 @@ export async function deleteIdpItemAction(_prev: ActionResult, formData: FormDat
           db.delete(idpItemOptions).where(eq(idpItemOptions.questionId, question.id)).run();
         }
         db.delete(idpItemQuestions).where(eq(idpItemQuestions.itemId, item.id)).run();
+        db.delete(idpItemAttempts).where(eq(idpItemAttempts.itemId, item.id)).run();
         db.delete(idpItems).where(eq(idpItems.id, item.id)).run();
         return true;
       })
@@ -573,6 +575,43 @@ export async function saveAssignmentTestAction(
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return saveAssignmentTestAction(_prev, formData, true);
+    return asActionError(error);
+  }
+}
+
+export async function submitItemTestAction(
+  _prev: ActionResult,
+  formData: FormData,
+  retried = false,
+): Promise<ActionResult> {
+  try {
+    const actor = await requireEmployee();
+    const item = getIdpItem(Number(formData.get("itemId")));
+    if (!item) throw new InvariantError("Задание не найдено");
+    const idp = getIdp(item.idpId);
+    if (!idp || idp.status !== "active") throw new InvariantError("Активный ИПР не найден");
+    if (actor.id !== idp.employeeId) throw new InvariantError("Тест сдаёт сотрудник этого плана");
+    if (item.acceptedAt != null) throw new InvariantError("После приёмки тест не сдаётся");
+    const db = getDb();
+    const questions = db
+      .select()
+      .from(idpItemQuestions)
+      .where(eq(idpItemQuestions.itemId, item.id))
+      .all();
+    if (questions.length === 0) throw new InvariantError("У строки нет теста");
+    let passed = true;
+    for (const question of questions) {
+      const chosen = String(formData.get(`answer-${question.id}`) ?? "");
+      const option = db.select().from(idpItemOptions).where(eq(idpItemOptions.id, chosen)).get();
+      if (!option || option.questionId !== question.id || option.isCorrect !== 1) passed = false;
+    }
+    db.insert(idpItemAttempts)
+      .values({ id: newId("att"), itemId: item.id, passed: passed ? 1 : 0, createdAt: now() })
+      .run();
+    revalidateIdp(idp.employeeId, idp.id);
+    return null;
+  } catch (error) {
+    if (retryIfClosed(error, retried)) return submitItemTestAction(_prev, formData, true);
     return asActionError(error);
   }
 }
