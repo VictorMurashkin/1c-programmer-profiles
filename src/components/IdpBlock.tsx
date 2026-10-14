@@ -152,6 +152,7 @@ export function IdpBlock({
               ) : null}
               <span className="chip ml-2">{group.confirmed ? "компетенция подтверждена" : "не подтверждена"}</span>
             </h3>
+            <div className="idp-table-scroll">
             <table className="idp-table">
               <thead>
                 <tr>
@@ -162,104 +163,101 @@ export function IdpBlock({
                 </tr>
               </thead>
               <tbody>
-                {group.rows.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.assignmentName}</td>
-                    <td>
-                      <p className="whitespace-pre-wrap">{item.learnText}</p>
-                      <CompetencyLinks links={links.get(group.competencyId) ?? []} />
-                    </td>
-                    <td className="whitespace-pre-wrap">{item.verifyText}</td>
-                    <td>{item.dueOn ?? "—"}</td>
-                  </tr>
-                ))}
+                {group.rows.map((item) => {
+                  const acceptedRow = item.acceptedAt != null;
+                  const canTickRow = tick && !acceptedRow;
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="font-medium">{item.assignmentName}</div>
+                        <span className="chip mt-2">
+                          {acceptedRow ? "принято" : ITEM_STATUS[item.status] ?? item.status}
+                        </span>
+                        {canTickRow ? (
+                          <ActionForm action={setIdpItemStatusAction} className="mt-2 flex flex-wrap items-end gap-2">
+                            <input type="hidden" name="itemId" value={item.id} />
+                            <label className="lbl">
+                              Ход
+                              <select className="field" name="status" defaultValue={item.status}>
+                                <option value="not_started">не начат</option>
+                                <option value="in_progress">в работе</option>
+                                <option value="done">сделал</option>
+                              </select>
+                            </label>
+                            <button className="btn-quiet" type="submit">
+                              Ок
+                            </button>
+                          </ActionForm>
+                        ) : null}
+                        {manage && !acceptedRow ? (
+                          <ActionForm action={acceptIdpItemAction} className="mt-2">
+                            <input type="hidden" name="itemId" value={item.id} />
+                            <button className="btn" type="submit">
+                              Принять
+                            </button>
+                          </ActionForm>
+                        ) : null}
+                        {(manage || reopen) && acceptedRow ? (
+                          <ActionForm action={unacceptIdpItemAction} className="mt-2">
+                            <input type="hidden" name="itemId" value={item.id} />
+                            <button className="btn-quiet" type="submit">
+                              Снять приёмку
+                            </button>
+                          </ActionForm>
+                        ) : null}
+                        {manage ? (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-sm">Править</summary>
+                            <ActionForm action={updateIdpItemAction} className="mt-2 grid gap-2">
+                              <input type="hidden" name="itemId" value={item.id} />
+                              <label className="lbl">
+                                Название
+                                <input className="field" name="name" defaultValue={item.assignmentName} />
+                              </label>
+                              <label className="lbl">
+                                Узнать
+                                <textarea className="field" name="learnText" rows={3} defaultValue={item.learnText} />
+                              </label>
+                              <label className="lbl">
+                                Проверить
+                                <textarea className="field" name="verifyText" rows={3} defaultValue={item.verifyText} />
+                              </label>
+                              <label className="lbl">
+                                Срок
+                                <input
+                                  className="field"
+                                  type="date"
+                                  name="dueOn"
+                                  defaultValue={item.dueOn ?? ""}
+                                  min={idp.periodStart}
+                                  max={idp.periodEnd}
+                                />
+                              </label>
+                              <button className="btn w-fit" type="submit">
+                                Сохранить тексты
+                              </button>
+                            </ActionForm>
+                            <ActionForm action={deleteIdpItemAction} className="mt-2">
+                              <input type="hidden" name="itemId" value={item.id} />
+                              <button className="btn-danger" type="submit">
+                                Убрать из плана
+                              </button>
+                            </ActionForm>
+                          </details>
+                        ) : null}
+                      </td>
+                      <td>
+                        <p className="whitespace-pre-wrap">{item.learnText}</p>
+                        <CompetencyLinks links={links.get(group.competencyId) ?? []} />
+                      </td>
+                      <td className="whitespace-pre-wrap">{item.verifyText}</td>
+                      <td>{item.dueOn ?? "—"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-            <ul className="space-y-3">
-              {group.rows.map((item) => {
-                const acceptedRow = item.acceptedAt != null;
-                const canTickRow = tick && !acceptedRow;
-                return (
-                  <li key={item.id} className="panel panel-pad space-y-3 text-sm">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <span className="font-medium">{item.assignmentName}</span>
-                      <span className="chip">{acceptedRow ? "принято" : ITEM_STATUS[item.status] ?? item.status}</span>
-                    </div>
-                    {canTickRow ? (
-                      <ActionForm action={setIdpItemStatusAction} className="flex flex-wrap items-end gap-2">
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <label className="lbl">
-                          Ход
-                          <select className="field" name="status" defaultValue={item.status}>
-                            <option value="not_started">не начат</option>
-                            <option value="in_progress">в работе</option>
-                            <option value="done">сделал</option>
-                          </select>
-                        </label>
-                        <button className="btn-quiet" type="submit">
-                          Ок
-                        </button>
-                      </ActionForm>
-                    ) : null}
-                    {manage && !acceptedRow ? (
-                      <ActionForm action={acceptIdpItemAction}>
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <button className="btn" type="submit">
-                          Принять
-                        </button>
-                      </ActionForm>
-                    ) : null}
-                    {(manage || reopen) && acceptedRow ? (
-                      <ActionForm action={unacceptIdpItemAction}>
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <button className="btn-quiet" type="submit">
-                          Снять приёмку
-                        </button>
-                      </ActionForm>
-                    ) : null}
-                    {manage ? (
-                      <ActionForm action={updateIdpItemAction} className="grid gap-2">
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <label className="lbl">
-                          Название
-                          <input className="field" name="name" defaultValue={item.assignmentName} />
-                        </label>
-                        <label className="lbl">
-                          Узнать
-                          <textarea className="field" name="learnText" rows={3} defaultValue={item.learnText} />
-                        </label>
-                        <label className="lbl">
-                          Проверить
-                          <textarea className="field" name="verifyText" rows={3} defaultValue={item.verifyText} />
-                        </label>
-                        <label className="lbl">
-                          Срок
-                          <input
-                            className="field"
-                            type="date"
-                            name="dueOn"
-                            defaultValue={item.dueOn ?? ""}
-                            min={idp.periodStart}
-                            max={idp.periodEnd}
-                          />
-                        </label>
-                        <button className="btn w-fit" type="submit">
-                          Сохранить тексты
-                        </button>
-                      </ActionForm>
-                    ) : null}
-                    {manage ? (
-                      <ActionForm action={deleteIdpItemAction}>
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <button className="btn-danger" type="submit">
-                          Убрать из плана
-                        </button>
-                      </ActionForm>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
+            </div>
           </div>
         ))}
         {items.length === 0 ? (
