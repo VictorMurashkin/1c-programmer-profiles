@@ -264,7 +264,7 @@ export function IdpBlock({
                         {(attempts.get(item.id)?.count ?? 0) > 0 ? (
                           <p className="muted mt-1 text-sm">Попыток: {attempts.get(item.id)?.count}</p>
                         ) : null}
-                        {actor.id === idp.employeeId && open && (tests.get(item.id)?.length ?? 0) > 0 ? (
+                        {actor.id === idp.employeeId && open && !acceptedRow && (tests.get(item.id)?.length ?? 0) > 0 ? (
                           <ActionForm action={submitItemTestAction} className="mt-2 space-y-2">
                             <input type="hidden" name="itemId" value={item.id} />
                             {(tests.get(item.id) ?? []).map((question) => (

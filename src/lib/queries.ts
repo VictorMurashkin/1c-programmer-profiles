@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { migrate } from "@/db/migrate";
 import {
@@ -500,7 +500,7 @@ export function listItemAttemptState(itemIds: number[]) {
     .select()
     .from(idpItemAttempts)
     .where(inArray(idpItemAttempts.itemId, itemIds))
-    .orderBy(asc(idpItemAttempts.createdAt))
+    .orderBy(asc(idpItemAttempts.createdAt), asc(sql`rowid`))
     .all();
   for (const row of rows) {
     const current = state.get(row.itemId) ?? { count: 0, passed: null };

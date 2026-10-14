@@ -136,9 +136,7 @@ test("после приёмки попытка не записывается", a
   await login(page, STAFF);
   await page.goto(idpPath);
   const own = page.getByRole("row", { name: new RegExp(NAME) });
-  await own.getByRole("radio", { name: RIGHT, exact: true }).check();
-  await own.getByRole("button", { name: "Сдать тест" }).click();
-  await expect(own.getByRole("alert")).toHaveText("После приёмки тест не сдаётся");
+  await expect(own.getByRole("button", { name: "Сдать тест" })).toHaveCount(0);
   await expect(own.getByText("Попыток: 2")).toBeVisible();
 });
 
