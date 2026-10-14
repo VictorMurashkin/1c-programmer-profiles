@@ -8,6 +8,7 @@
  */
 import { getDb, getSqlite, now } from "../src/db";
 import { migrate } from "../src/db/migrate";
+import path from "node:path";
 import {
   competencyLinks,
   employeeCompetencyMarks,
@@ -38,7 +39,24 @@ function targetSkills(jobId: string, limit: number): TargetSkill[] {
   return rows;
 }
 
+/** Отказ до записи: без DB_PATH или с путём в data/ скрипт попал бы в рабочую базу. */
+function assertSafeDbPath() {
+  const given = process.env.DB_PATH?.trim();
+  if (!given) {
+    console.error("DB_PATH не задан. upgrade-base.ts не пишет в data/profiles.sqlite.");
+    process.exit(1);
+  }
+  const abs = path.resolve(given);
+  const dataDir = path.resolve("data");
+  const fromData = path.relative(dataDir, abs);
+  if (fromData === "" || (!fromData.startsWith("..") && !path.isAbsolute(fromData))) {
+    console.error("DB_PATH указывает в data/. Рабочую базу скрипт не меняет.");
+    process.exit(1);
+  }
+}
+
 function main() {
+  assertSafeDbPath();
   migrate();
   const db = getDb();
   const t = now();
