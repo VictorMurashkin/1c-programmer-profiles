@@ -20,6 +20,8 @@ jobs:
       - run: npm ci
       - name: Seed по контракту
         run: npm run check:seed
+      - name: Lint
+        run: npm run lint
       - name: Типы
         run: npx tsc --noEmit
       - name: Сборка
