@@ -152,7 +152,29 @@ export function IdpBlock({
               ) : null}
               <span className="chip ml-2">{group.confirmed ? "компетенция подтверждена" : "не подтверждена"}</span>
             </h3>
-            <CompetencyLinks links={links.get(group.competencyId) ?? []} />
+            <table className="idp-table">
+              <thead>
+                <tr>
+                  <th>Цель</th>
+                  <th>Узнать</th>
+                  <th>Проверить</th>
+                  <th>Срок</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.rows.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.assignmentName}</td>
+                    <td>
+                      <p className="whitespace-pre-wrap">{item.learnText}</p>
+                      <CompetencyLinks links={links.get(group.competencyId) ?? []} />
+                    </td>
+                    <td className="whitespace-pre-wrap">{item.verifyText}</td>
+                    <td>{item.dueOn ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             <ul className="space-y-3">
               {group.rows.map((item) => {
                 const acceptedRow = item.acceptedAt != null;
@@ -160,19 +182,8 @@ export function IdpBlock({
                 return (
                   <li key={item.id} className="panel panel-pad space-y-3 text-sm">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <div className="font-medium">{item.assignmentName}</div>
-                        {item.dueOn ? <div className="muted text-xs">срок {item.dueOn}</div> : null}
-                      </div>
+                      <span className="font-medium">{item.assignmentName}</span>
                       <span className="chip">{acceptedRow ? "принято" : ITEM_STATUS[item.status] ?? item.status}</span>
-                    </div>
-                    <div>
-                      <div className="muted text-xs">Узнать</div>
-                      <p className="whitespace-pre-wrap">{item.learnText}</p>
-                    </div>
-                    <div>
-                      <div className="muted text-xs">Проверить</div>
-                      <p className="whitespace-pre-wrap">{item.verifyText}</p>
                     </div>
                     {canTickRow ? (
                       <ActionForm action={setIdpItemStatusAction} className="flex flex-wrap items-end gap-2">
