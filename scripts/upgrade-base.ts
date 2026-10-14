@@ -16,6 +16,7 @@ import {
   idpAssignmentOptions,
   idpAssignmentQuestions,
   idpAssignments,
+  idpItemAttempts,
   idpItemOptions,
   idpItemQuestions,
   idpItems,
@@ -160,6 +161,9 @@ function main() {
             { id: "iopt-asg-1-b", questionId: "iq-asg-1", text: "Пропустить", isCorrect: 0, sortOrder: 1 },
           ])
           .run();
+        db.insert(idpItemAttempts)
+          .values({ id: "att-asg-1", itemId: withTest.id, passed: 1, createdAt: t })
+          .run();
       }
 
       db.insert(employeeCompetencyMarks)
@@ -180,7 +184,7 @@ function main() {
     .deferred(null);
 
   console.log(
-    "upgrade base: employees=4 idps=2 idp_assignments=3 idp_pool=3 idp_items=2 employee_competency_marks=2 competency_links=2 idp_assignment_questions=1 idp_item_questions=1",
+    "upgrade base: employees=4 idps=2 idp_assignments=3 idp_pool=3 idp_items=2 employee_competency_marks=2 competency_links=2 idp_assignment_questions=1 idp_item_questions=1 idp_item_attempts=1",
   );
 }
 

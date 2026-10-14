@@ -181,6 +181,15 @@ export const idpItemOptions = sqliteTable("idp_item_options", {
   sortOrder: integer("sort_order").notNull(),
 });
 
+export const idpItemAttempts = sqliteTable("idp_item_attempts", {
+  id: text("id").primaryKey(),
+  itemId: integer("item_id")
+    .notNull()
+    .references(() => idpItems.id),
+  passed: integer("passed").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
 export const employeeCompetencyMarks = sqliteTable(
   "employee_competency_marks",
   {

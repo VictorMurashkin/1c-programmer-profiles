@@ -3,6 +3,7 @@ import { AddIdpItemForm } from "@/components/AddIdpItemForm";
 import { CompetencyLinks } from "@/components/CompetencyLinks";
 import {
   acceptIdpItemAction,
+  submitItemTestAction,
   cancelIdpAction,
   deleteIdpItemAction,
   refreshIdpPoolAction,
@@ -18,7 +19,9 @@ import {
   listActiveIdpAssignmentsFor,
   listCompetencyLinks,
   listIdpItems,
+  listItemAttemptState,
   listItemQuestionPrompts,
+  listItemTestsForTake,
   listIdps,
 } from "@/lib/queries";
 import type { idpItems, idpPool, idps } from "@/db/schema";
@@ -114,6 +117,8 @@ export function IdpBlock({
   const groups = groupItems(items);
   const links = listCompetencyLinks();
   const prompts = listItemQuestionPrompts(items.map((item) => item.id));
+  const tests = listItemTestsForTake(items.map((item) => item.id));
+  const attempts = listItemAttemptState(items.map((item) => item.id));
   const competencyName = new Map(pool.map((row) => [row.competencyId, row.competencyName]));
   const catalog = listActiveIdpAssignmentsFor(pool.map((row) => row.competencyId)).map((assignment) => ({
     ...assignment,
@@ -253,6 +258,29 @@ export function IdpBlock({
                               <li key={`${item.id}-${index}`}>{prompt}</li>
                             ))}
                           </ul>
+                        ) : null}
+                        {attempts.get(item.id)?.passed === true ? <p className="mt-2">сдан</p> : null}
+                        {attempts.get(item.id)?.passed === false ? <p className="mt-2">не сдан</p> : null}
+                        {(attempts.get(item.id)?.count ?? 0) > 0 ? (
+                          <p className="muted mt-1 text-sm">Попыток: {attempts.get(item.id)?.count}</p>
+                        ) : null}
+                        {actor.id === idp.employeeId && open && (tests.get(item.id)?.length ?? 0) > 0 ? (
+                          <ActionForm action={submitItemTestAction} className="mt-2 space-y-2">
+                            <input type="hidden" name="itemId" value={item.id} />
+                            {(tests.get(item.id) ?? []).map((question) => (
+                              <fieldset key={question.id}>
+                                <legend>{question.prompt}</legend>
+                                {question.options.map((option) => (
+                                  <label key={option.id} className="mt-1 block">
+                                    <input type="radio" name={`answer-${question.id}`} value={option.id} required /> {option.text}
+                                  </label>
+                                ))}
+                              </fieldset>
+                            ))}
+                            <button className="btn w-fit" type="submit">
+                              Сдать тест
+                            </button>
+                          </ActionForm>
                         ) : null}
                       </td>
                       <td>{item.dueOn ?? "—"}</td>
