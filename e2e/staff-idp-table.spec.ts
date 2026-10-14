@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { E2E_ADMIN } from "./env";
+import { E2E_ADMIN, E2E_ADMIN_PASSWORD } from "./env";
 
-// Файл идёт после session.spec.ts: админ там уже создан.
 test.describe.configure({ mode: "serial" });
 
 const STAFF = { login: "e2e.idp.table", name: "Таблица ИПР E2E", password: "e2e-idp-table-password" };
@@ -12,10 +11,20 @@ let idpPath = "";
 
 async function login(page: Page) {
   await page.goto("/login");
-  const form = page.locator('form:has(input[name="intent"][value="login"])');
-  await form.getByLabel("Логин").fill(E2E_ADMIN.login);
-  await form.getByLabel("Пароль", { exact: true }).fill(E2E_ADMIN.password);
-  await form.getByRole("button", { name: "Войти" }).click();
+  const bootstrap = page.locator("#bootstrap-admin");
+  if (await bootstrap.isVisible()) {
+    await bootstrap.getByLabel("Пароль из .env.local").fill(E2E_ADMIN_PASSWORD);
+    await bootstrap.getByLabel("Логин").fill(E2E_ADMIN.login);
+    await bootstrap.getByLabel("Имя").fill(E2E_ADMIN.name);
+    await bootstrap.getByLabel("Должность").selectOption("team-lead");
+    await bootstrap.getByLabel("Пароль учётки").fill(E2E_ADMIN.password);
+    await bootstrap.getByRole("button", { name: "Создать первого админа" }).click();
+  } else {
+    const form = page.locator('form:has(input[name="intent"][value="login"])');
+    await form.getByLabel("Логин").fill(E2E_ADMIN.login);
+    await form.getByLabel("Пароль", { exact: true }).fill(E2E_ADMIN.password);
+    await form.getByRole("button", { name: "Войти" }).click();
+  }
   await expect(page).toHaveURL(/\/me$/);
 }
 
@@ -51,7 +60,7 @@ test("карточка ИПР показывает сотрудника, пер�
   idpPath = new URL(page.url()).pathname;
   await expect(page.getByText(STAFF.name)).toBeVisible();
   await expect(page.getByText("2026-03-01 — 2026-09-30")).toBeVisible();
-  const table = page.locator("table.idp-table");
+  const table = page.getByRole("table");
   await expect(table.getByRole("columnheader", { name: "Цель" })).toBeVisible();
   await expect(table.getByRole("columnheader", { name: "Узнать" })).toBeVisible();
   await expect(table.getByRole("columnheader", { name: "Проверить" })).toBeVisible();
@@ -69,5 +78,5 @@ test("карточка ИПР показывает сотрудника, пер�
 test("гость с карточки ИПР уходит на вход", async ({ page }) => {
   await page.goto(idpPath || "/idps/missing");
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.locator("table.idp-table")).toHaveCount(0);
+  await expect(page.getByRole("table")).toHaveCount(0);
 });
