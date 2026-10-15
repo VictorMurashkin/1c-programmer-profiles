@@ -629,6 +629,7 @@ export async function submitItemTestAction(
       .values({ id: newId("att"), itemId: item.id, passed: passed ? 1 : 0, createdAt: now() })
       .run();
     revalidateIdp(idp.employeeId, idp.id);
+    revalidatePath(`/idps/${idp.id}/items/${item.id}`);
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return submitItemTestAction(_prev, formData, true);

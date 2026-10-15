@@ -95,10 +95,10 @@ test("рядом с приёмкой видно «сдан» и число по�
 
   await login(page, STAFF);
   await page.goto(idpPath);
-  const own = page.getByRole("row", { name: new RegExp(NAME) });
-  await own.getByRole("radio", { name: RIGHT, exact: true }).check();
+  await page.getByRole("row", { name: new RegExp(NAME) }).getByRole("link", { name: "Сдать тест" }).click();
+  await page.getByRole("radio", { name: RIGHT, exact: true }).check();
   const posted = page.waitForResponse((response) => response.request().method() === "POST");
-  await own.getByRole("button", { name: "Сдать тест" }).click();
+  await page.getByRole("button", { name: "Сдать тест" }).click();
   await posted;
 
   await login(page);
@@ -115,10 +115,10 @@ test("рядом с приёмкой видно «сдан» и число по�
 test("не сданный тест не мешает приёмке", async ({ page }) => {
   await login(page, STAFF);
   await page.goto(idpPath);
-  const own = page.getByRole("row", { name: new RegExp(NAME) });
-  await own.getByRole("radio", { name: WRONG, exact: true }).check();
+  await page.getByRole("row", { name: new RegExp(NAME) }).getByRole("link", { name: "Сдать тест" }).click();
+  await page.getByRole("radio", { name: WRONG, exact: true }).check();
   const posted = page.waitForResponse((response) => response.request().method() === "POST");
-  await own.getByRole("button", { name: "Сдать тест" }).click();
+  await page.getByRole("button", { name: "Сдать тест" }).click();
   await posted;
 
   await login(page);

@@ -11,6 +11,7 @@ const WRONG = `Неверно ${STAMP}`;
 const STAFF = { login: `e2e.take.${STAMP}`, name: `Сдаёт ${STAMP}`, password: "e2e-take-password" };
 const OTHER = { login: `e2e.take.other.${STAMP}`, name: `Чужой ${STAMP}`, password: "e2e-take-other-password" };
 let idpPath = "";
+let takePath = "";
 
 async function login(page: Page, account: { login: string; password: string } = E2E_ADMIN) {
   await page.goto("/login");
@@ -100,30 +101,35 @@ test("верный ответ показывает «сдан», строка н
 
   await login(page, STAFF);
   await page.goto(idpPath);
+  const row = page.getByRole("row", { name: new RegExp(NAME) });
+  await expect(row.getByRole("radio")).toHaveCount(0);
+  await row.getByRole("link", { name: "Сдать тест" }).click();
+  takePath = new URL(page.url()).pathname;
   const html = await page.content();
   expect(html).not.toContain("isCorrect");
   expect(html).not.toContain("is_correct");
-  const row = page.getByRole("row", { name: new RegExp(NAME) });
-  await row.getByRole("radio", { name: RIGHT, exact: true }).check();
+  await page.getByRole("radio", { name: RIGHT, exact: true }).check();
   const posted = page.waitForResponse((response) => response.request().method() === "POST");
-  await row.getByRole("button", { name: "Сдать тест" }).click();
+  await page.getByRole("button", { name: "Сдать тест" }).click();
   await posted;
-  await expect(row.getByText("сдан", { exact: true })).toBeVisible();
-  await expect(row.getByText("принято", { exact: true })).toHaveCount(0);
-  await expect(row.getByText("Попыток: 1")).toBeVisible();
+  await expect(page.getByText("сдан", { exact: true })).toBeVisible();
+  await expect(page.getByText("Попыток: 1")).toBeVisible();
+  await page.goto(idpPath);
+  const after = page.getByRole("row", { name: new RegExp(NAME) });
+  await expect(after.getByText("принято", { exact: true })).toHaveCount(0);
+  await expect(after.getByText("сдан", { exact: true })).toBeVisible();
 });
 
 test("неверный ответ показывает «не сдан», сдать можно снова", async ({ page }) => {
   await login(page, STAFF);
-  await page.goto(idpPath);
-  const row = page.getByRole("row", { name: new RegExp(NAME) });
-  await row.getByRole("radio", { name: WRONG, exact: true }).check();
+  await page.goto(takePath);
+  await page.getByRole("radio", { name: WRONG, exact: true }).check();
   const posted = page.waitForResponse((response) => response.request().method() === "POST");
-  await row.getByRole("button", { name: "Сдать тест" }).click();
+  await page.getByRole("button", { name: "Сдать тест" }).click();
   await posted;
-  await expect(row.getByText("не сдан", { exact: true })).toBeVisible();
-  await expect(row.getByText("Попыток: 2")).toBeVisible();
-  await expect(row.getByRole("button", { name: "Сдать тест" })).toBeVisible();
+  await expect(page.getByText("не сдан", { exact: true })).toBeVisible();
+  await expect(page.getByText("Попыток: 2")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Сдать тест" })).toBeVisible();
 });
 
 test("после приёмки попытка не записывается", async ({ page }) => {
@@ -134,15 +140,20 @@ test("после приёмки попытка не записывается", a
   await expect(row.getByText("принято", { exact: true }).filter({ visible: true })).toBeVisible();
 
   await login(page, STAFF);
+  await page.goto(takePath);
+  await expect(page.getByRole("button", { name: "Сдать тест" })).toHaveCount(0);
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(page.getByText("Попыток: 2")).toBeVisible();
   await page.goto(idpPath);
   const own = page.getByRole("row", { name: new RegExp(NAME) });
-  await expect(own.getByRole("button", { name: "Сдать тест" })).toHaveCount(0);
+  await expect(own.getByRole("link", { name: "Сдать тест" })).toHaveCount(0);
   await expect(own.getByText("Попыток: 2")).toBeVisible();
 });
 
 test("чужой сотрудник попытку не пишет", async ({ page }) => {
   await login(page, OTHER);
-  await page.goto(idpPath);
+  const response = await page.goto(takePath);
+  expect(response?.status()).toBe(404);
   await expect(page.getByRole("button", { name: "Сдать тест" })).toHaveCount(0);
 
   await login(page, STAFF);

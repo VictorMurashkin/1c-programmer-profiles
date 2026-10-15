@@ -5,7 +5,6 @@ import { IdpItemStatus } from "@/components/IdpItemStatus";
 import { CompetencyLinks } from "@/components/CompetencyLinks";
 import {
   acceptIdpItemAction,
-  submitItemTestAction,
   cancelIdpAction,
   refreshIdpPoolAction,
   unacceptIdpItemAction,
@@ -20,7 +19,6 @@ import {
   listIdpItems,
   listItemAttemptState,
   listItemQuestionPrompts,
-  listItemTestsForTake,
   listIdps,
 } from "@/lib/queries";
 import type { idpItems, idpPool, idps } from "@/db/schema";
@@ -116,7 +114,6 @@ export function IdpBlock({
   const groups = groupItems(items);
   const links = listCompetencyLinks();
   const prompts = listItemQuestionPrompts(items.map((item) => item.id));
-  const tests = listItemTestsForTake(items.map((item) => item.id));
   const attempts = listItemAttemptState(items.map((item) => item.id));
   const competencyName = new Map(pool.map((row) => [row.competencyId, row.competencyName]));
   const catalog = listActiveIdpAssignmentsFor(pool.map((row) => row.competencyId)).map((assignment) => ({
@@ -199,23 +196,12 @@ export function IdpBlock({
                             {(attempts.get(item.id)?.count ?? 0) > 0 ? (
                               <p className="muted mt-1 text-sm">Попыток: {attempts.get(item.id)?.count}</p>
                             ) : null}
-                            {actor.id === idp.employeeId && open && !acceptedRow && (tests.get(item.id)?.length ?? 0) > 0 ? (
-                              <ActionForm action={submitItemTestAction} className="mt-2 space-y-2">
-                                <input type="hidden" name="itemId" value={item.id} />
-                                {(tests.get(item.id) ?? []).map((question) => (
-                                  <fieldset key={question.id}>
-                                    <legend>{question.prompt}</legend>
-                                    {question.options.map((option) => (
-                                      <label key={option.id} className="mt-1 block">
-                                        <input type="radio" name={`answer-${question.id}`} value={option.id} required /> {option.text}
-                                      </label>
-                                    ))}
-                                  </fieldset>
-                                ))}
-                                <button className="btn w-fit" type="submit">
+                            {actor.id === idp.employeeId && open && !acceptedRow && (prompts.get(item.id)?.length ?? 0) > 0 ? (
+                              <p className="mt-2">
+                                <a className="link-accent" href={`/idps/${idp.id}/items/${item.id}`}>
                                   Сдать тест
-                                </button>
-                              </ActionForm>
+                                </a>
+                              </p>
                             ) : null}
                           </>
                         }
