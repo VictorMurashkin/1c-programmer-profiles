@@ -461,24 +461,29 @@ export async function saveAssignmentAction(_prev: ActionResult, formData: FormDa
     }
     const idRaw = String(formData.get("id") ?? "").trim();
     const competencyId = String(formData.get("competencyId") ?? "");
-    const texts = readAssignmentTexts(formData);
-    assertAssignableCompetency(competencyId);
     const db = getDb();
     const t = now();
+    if (idRaw) {
+      const existing = getIdpAssignment(idRaw);
+      if (!existing) throw new InvariantError("Задание не найдено");
+      if (existing.archived !== 0) throw new InvariantError("Скрытое задание сначала верните в справочник");
+    }
+    const texts = readAssignmentTexts(formData);
+    assertAssignableCompetency(competencyId);
     if (!idRaw) {
       const created = insertCatalogAssignment(competencyId, texts);
       revalidatePath("/assignments");
       revalidatePath(`/assignments/${created.id}`);
       return { href: `/assignments/${created.id}` };
     }
-    const existing = getIdpAssignment(idRaw);
-    if (!existing) throw new InvariantError("Задание не найдено");
-    if (existing.archived !== 0) throw new InvariantError("Скрытое задание сначала верните в справочник");
-    if (existing.competencyId !== competencyId) {
-      throw new InvariantError("Компетенцию задания не меняют");
-    }
     db.update(idpAssignments)
-      .set({ name: texts.name, learnText: texts.learnText, verifyText: texts.verifyText, updatedAt: t })
+      .set({
+        competencyId,
+        name: texts.name,
+        learnText: texts.learnText,
+        verifyText: texts.verifyText,
+        updatedAt: t,
+      })
       .where(eq(idpAssignments.id, idRaw))
       .run();
     revalidatePath("/assignments");

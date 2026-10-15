@@ -4,7 +4,7 @@ import { AssignmentTestFields } from "@/components/AssignmentTestFields";
 import { archiveAssignmentAction, saveAssignmentAction, saveAssignmentTestAction } from "@/app/idp-actions";
 import { getSessionEmployee } from "@/lib/auth";
 import { canEditAssignmentCatalog } from "@/lib/invariants";
-import { getCompetency, getIdpAssignment, listAssignmentTest } from "@/lib/queries";
+import { assignmentCompetencies, getCompetency, getIdpAssignment, listAssignmentTest } from "@/lib/queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
   const row = getIdpAssignment(assignmentId);
   if (!row) notFound();
   const competency = getCompetency(row.competencyId);
+  const competencies = assignmentCompetencies();
   const test = listAssignmentTest(row.id);
 
   return (
@@ -30,14 +31,25 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
         <span className="pulse-dot" />
         <h1 className="page-title">{row.name}</h1>
       </div>
-      <p className="text-sm">
-        <span className="lbl">Компетенция</span>
-        <span className="mt-1 block">{competency?.name ?? row.competencyId}</span>
-      </p>
+      {row.archived !== 0 ? (
+        <p className="text-sm">
+          <span className="lbl">Компетенция</span>
+          <span className="mt-1 block">{competency?.name ?? row.competencyId}</span>
+        </p>
+      ) : null}
       {row.archived === 0 ? (
         <ActionForm action={saveAssignmentAction} className="panel panel-pad grid gap-3 text-sm md:grid-cols-2">
           <input type="hidden" name="id" value={row.id} />
-          <input type="hidden" name="competencyId" value={row.competencyId} />
+          <label className="lbl md:col-span-2">
+            Компетенция
+            <select name="competencyId" className="field mt-1" defaultValue={row.competencyId}>
+              {competencies.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="lbl md:col-span-2">
             Название
             <input className="field" name="name" defaultValue={row.name} />
