@@ -35,24 +35,29 @@ export default async function IdpItemTestPage({ params }: { params: Promise<{ id
         <span className="pulse-dot" />
         <h1 className="page-title">{item.assignmentName}</h1>
       </div>
-      <p className="whitespace-pre-wrap text-sm">{item.verifyText}</p>
-      {attempt?.passed === true ? <p>сдан</p> : null}
-      {attempt?.passed === false ? <p>не сдан</p> : null}
-      {(attempt?.count ?? 0) > 0 ? <p className="muted text-sm">Попыток: {attempt?.count}</p> : null}
+      <section className="panel panel-pad space-y-3 text-sm">
+        <h2 className="section-title mb-0">Проверить</h2>
+        <p className="whitespace-pre-wrap">{item.verifyText}</p>
+        {attempt?.passed === true ? <p>сдан</p> : null}
+        {attempt?.passed === false ? <p>не сдан</p> : null}
+        {(attempt?.count ?? 0) > 0 ? <p className="muted text-sm">Попыток: {attempt?.count}</p> : null}
+      </section>
       {canTake ? (
         <ActionForm action={submitItemTestAction} className="panel panel-pad space-y-3 text-sm">
+          <h2 className="section-title mb-0">Тест</h2>
           <input type="hidden" name="itemId" value={item.id} />
           {questions.map((question) => (
-            <fieldset key={question.id}>
-              <legend>{question.prompt}</legend>
+            <fieldset key={question.id} className="space-y-2">
+              <p className="font-medium">{question.prompt}</p>
               {question.options.map((option) => (
-                <label key={option.id} className="mt-1 block">
-                  <input type="radio" name={`answer-${question.id}`} value={option.id} required /> {option.text}
+                <label key={option.id} className="flex items-center gap-2">
+                  <input type="radio" name={`answer-${question.id}`} value={option.id} required />
+                  <span>{option.text}</span>
                 </label>
               ))}
             </fieldset>
           ))}
-          <button className="btn w-fit" type="submit">
+          <button className="btn-primary w-fit" type="submit">
             Сдать тест
           </button>
         </ActionForm>
