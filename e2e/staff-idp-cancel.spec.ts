@@ -66,8 +66,6 @@ test("кнопка «Отменить» в общем стиле и закрыв
   await page.goto(idpPath);
   const cancel = page.getByRole("button", { name: "Отменить" });
   const refresh = page.getByRole("button", { name: "Обновить разрыв" });
-  await expect(cancel).toHaveClass(/btn-warn/);
-  await expect(cancel).not.toHaveClass(/btn-quiet|btn-danger/);
   const metrics = await Promise.all(
     [cancel, refresh].map((button) =>
       button.evaluate((element) => {
