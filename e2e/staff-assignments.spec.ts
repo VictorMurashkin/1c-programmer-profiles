@@ -93,7 +93,7 @@ test("создание открывает карточку, и ссылка ес
 test("правка названия, узнать и проверить сохраняется, компетенция та же", async ({ page }) => {
   await login(page, E2E_ADMIN);
   await page.goto(cardPath);
-  const competency = await page.locator("p").filter({ hasText: "Компетенция" }).locator("span.block").innerText();
+  const competency = await page.getByLabel(/^Компетенция/).inputValue();
   const nextName = `${NAME} правка`;
   const nextLearn = `${LEARN} правка`;
   const nextVerify = `${VERIFY} правка`;
@@ -108,8 +108,7 @@ test("правка названия, узнать и проверить сохр
   await expect(page.getByLabel(/^Название/)).toHaveValue(nextName);
   await expect(page.getByLabel(/^Узнать/)).toHaveValue(nextLearn);
   await expect(page.getByLabel(/^Проверить/)).toHaveValue(nextVerify);
-  await expect(page.locator("p").filter({ hasText: "Компетенция" })).toContainText(competency);
-  await expect(page.getByLabel(/^Компетенция/)).toHaveCount(0);
+  await expect(page.getByLabel(/^Компетенция/)).toHaveValue(competency);
 });
 
 test("скрытие убирает форму правки, возврат её возвращает", async ({ page }) => {
