@@ -675,6 +675,39 @@ details[open] > .skill-summary::before {
   padding: 0.65rem 0.5rem;
 }
 
+.idp-edit-toggle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+label.idp-cell-edit,
+.idp-edit-actions {
+  display: none;
+}
+
+.idp-edit-open {
+  cursor: pointer;
+}
+
+tr:has(.idp-edit-toggle:checked) .idp-cell-read,
+tr:has(.idp-edit-toggle:checked) .idp-edit-open {
+  display: none;
+}
+
+tr:has(.idp-edit-toggle:checked) label.idp-cell-edit {
+  display: block;
+}
+
+tr:has(.idp-edit-toggle:checked) .idp-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .idp-table th {
   font-size: 0.65rem;
   letter-spacing: 0.1em;

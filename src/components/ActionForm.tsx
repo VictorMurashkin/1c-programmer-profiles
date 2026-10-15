@@ -74,6 +74,7 @@ export function ActionForm({
   className,
   beforeSubmit,
   successPath,
+  id,
 }: {
   action: (state: ActionResult, formData: FormData) => Promise<ActionResult>;
   children: React.ReactNode;
@@ -81,6 +82,8 @@ export function ActionForm({
   beforeSubmit?: (formData: FormData) => string | null;
   /** Куда перейти после успешного сохранения. `redirect()` из действия с `useActionState` вызывать нельзя. */
   successPath?: string;
+  /** Поля в других ячейках строки ссылаются на форму через атрибут `form`. */
+  id?: string;
 }) {
   const runAndLeave = useCallback(
     async (prev: ActionResult, formData: FormData) => {
@@ -118,7 +121,7 @@ export function ActionForm({
   }
 
   return (
-    <form action={formAction} className={className} noValidate onSubmit={onSubmit}>
+    <form id={id} action={formAction} className={className} noValidate onSubmit={onSubmit}>
       <FormBody className={className} error={error} pending={pending}>
         {children}
       </FormBody>

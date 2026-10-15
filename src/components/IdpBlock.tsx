@@ -1,15 +1,14 @@
 import { ActionForm } from "@/components/ActionForm";
 import { AddIdpItemForm } from "@/components/AddIdpItemForm";
+import { IdpItemEdit } from "@/components/IdpItemEdit";
 import { IdpItemStatus } from "@/components/IdpItemStatus";
 import { CompetencyLinks } from "@/components/CompetencyLinks";
 import {
   acceptIdpItemAction,
   submitItemTestAction,
   cancelIdpAction,
-  deleteIdpItemAction,
   refreshIdpPoolAction,
   unacceptIdpItemAction,
-  updateIdpItemAction,
 } from "@/app/idp-actions";
 import type { SessionEmployee } from "@/lib/auth";
 import { canManageEmployee, canTickIdpItem } from "@/lib/invariants";
@@ -177,112 +176,83 @@ export function IdpBlock({
                   const canTickRow = tick && !acceptedRow;
                   return (
                     <tr key={item.id}>
-                      <td>
-                        <div className="font-medium">{item.assignmentName}</div>
-                        {manage ? (
-                          <details className="mt-2">
-                            <summary className="cursor-pointer text-sm">Править</summary>
-                            <ActionForm action={updateIdpItemAction} className="mt-2 grid gap-2">
-                              <input type="hidden" name="itemId" value={item.id} />
-                              <label className="lbl">
-                                Название
-                                <input className="field" name="name" defaultValue={item.assignmentName} />
-                              </label>
-                              <label className="lbl">
-                                Узнать
-                                <textarea className="field" name="learnText" rows={3} defaultValue={item.learnText} />
-                              </label>
-                              <label className="lbl">
-                                Проверить
-                                <textarea className="field" name="verifyText" rows={3} defaultValue={item.verifyText} />
-                              </label>
-                              <label className="lbl">
-                                Срок
-                                <input className="field" type="date" name="dueOn" defaultValue={item.dueOn ?? ""} />
-                              </label>
-                              <button className="btn w-fit" type="submit">
-                                Сохранить тексты
-                              </button>
-                            </ActionForm>
-                            <ActionForm action={deleteIdpItemAction} className="mt-2">
-                              <input type="hidden" name="itemId" value={item.id} />
-                              <button className="btn-danger" type="submit">
-                                Убрать из плана
-                              </button>
-                            </ActionForm>
-                          </details>
-                        ) : null}
-                      </td>
-                      <td>
-                        <p className="whitespace-pre-wrap">{item.learnText}</p>
-                        <CompetencyLinks links={links.get(group.competencyId) ?? []} />
-                      </td>
-                      <td className="whitespace-pre-wrap">
-                        <p>{item.verifyText}</p>
-                        {(prompts.get(item.id) ?? []).length > 0 ? (
-                          <ul className="mt-2">
-                            {(prompts.get(item.id) ?? []).map((prompt, index) => (
-                              <li key={`${item.id}-${index}`}>{prompt}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                        {attempts.get(item.id)?.passed === true ? <p className="mt-2">сдан</p> : null}
-                        {attempts.get(item.id)?.passed === false ? <p className="mt-2">не сдан</p> : null}
-                        {(attempts.get(item.id)?.count ?? 0) > 0 ? (
-                          <p className="muted mt-1 text-sm">Попыток: {attempts.get(item.id)?.count}</p>
-                        ) : null}
-                        {actor.id === idp.employeeId && open && !acceptedRow && (tests.get(item.id)?.length ?? 0) > 0 ? (
-                          <ActionForm action={submitItemTestAction} className="mt-2 space-y-2">
-                            <input type="hidden" name="itemId" value={item.id} />
-                            {(tests.get(item.id) ?? []).map((question) => (
-                              <fieldset key={question.id}>
-                                <legend>{question.prompt}</legend>
-                                {question.options.map((option) => (
-                                  <label key={option.id} className="mt-1 block">
-                                    <input type="radio" name={`answer-${question.id}`} value={option.id} required /> {option.text}
-                                  </label>
+                      <IdpItemEdit
+                        itemId={item.id}
+                        name={item.assignmentName}
+                        learnText={item.learnText}
+                        verifyText={item.verifyText}
+                        dueOn={item.dueOn}
+                        manage={manage}
+                        learnExtra={<CompetencyLinks links={links.get(group.competencyId) ?? []} />}
+                        verifyExtra={
+                          <>
+                            {(prompts.get(item.id) ?? []).length > 0 ? (
+                              <ul className="mt-2">
+                                {(prompts.get(item.id) ?? []).map((prompt, index) => (
+                                  <li key={`${item.id}-${index}`}>{prompt}</li>
                                 ))}
-                              </fieldset>
-                            ))}
-                            <button className="btn w-fit" type="submit">
-                              Сдать тест
-                            </button>
-                          </ActionForm>
-                        ) : null}
-                      </td>
-                      <td>{item.dueOn ?? "—"}</td>
-                      <td>
-                        {canTickRow ? (
-                          <IdpItemStatus itemId={item.id} status={item.status} />
-                        ) : (
-                          ITEM_STATUS[item.status] ?? item.status
-                        )}
-                      </td>
-                      <td>
-                        {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
-                          <p className="mb-2 text-sm">
-                            Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
-                            {attempts.get(item.id)?.count}
-                          </p>
-                        ) : null}
-                        {manage && !acceptedRow ? (
-                          <ActionForm action={acceptIdpItemAction}>
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <button className="btn-success" type="submit">
-                              Подтвердить
-                            </button>
-                          </ActionForm>
-                        ) : null}
-                        {(manage || reopen) && acceptedRow ? (
-                          <ActionForm action={unacceptIdpItemAction}>
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <button className="btn-warn" type="submit">
-                              Снять подтверждение
-                            </button>
-                          </ActionForm>
-                        ) : null}
-                        {acceptedRow ? <span className="chip mt-2">принято</span> : null}
-                      </td>
+                              </ul>
+                            ) : null}
+                            {attempts.get(item.id)?.passed === true ? <p className="mt-2">сдан</p> : null}
+                            {attempts.get(item.id)?.passed === false ? <p className="mt-2">не сдан</p> : null}
+                            {(attempts.get(item.id)?.count ?? 0) > 0 ? (
+                              <p className="muted mt-1 text-sm">Попыток: {attempts.get(item.id)?.count}</p>
+                            ) : null}
+                            {actor.id === idp.employeeId && open && !acceptedRow && (tests.get(item.id)?.length ?? 0) > 0 ? (
+                              <ActionForm action={submitItemTestAction} className="mt-2 space-y-2">
+                                <input type="hidden" name="itemId" value={item.id} />
+                                {(tests.get(item.id) ?? []).map((question) => (
+                                  <fieldset key={question.id}>
+                                    <legend>{question.prompt}</legend>
+                                    {question.options.map((option) => (
+                                      <label key={option.id} className="mt-1 block">
+                                        <input type="radio" name={`answer-${question.id}`} value={option.id} required /> {option.text}
+                                      </label>
+                                    ))}
+                                  </fieldset>
+                                ))}
+                                <button className="btn w-fit" type="submit">
+                                  Сдать тест
+                                </button>
+                              </ActionForm>
+                            ) : null}
+                          </>
+                        }
+                        status={
+                          canTickRow ? (
+                            <IdpItemStatus itemId={item.id} status={item.status} />
+                          ) : (
+                            ITEM_STATUS[item.status] ?? item.status
+                          )
+                        }
+                        confirm={
+                          <>
+                            {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
+                              <p className="mb-2 text-sm">
+                                Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
+                                {attempts.get(item.id)?.count}
+                              </p>
+                            ) : null}
+                            {manage && !acceptedRow ? (
+                              <ActionForm action={acceptIdpItemAction}>
+                                <input type="hidden" name="itemId" value={item.id} />
+                                <button className="btn-success" type="submit">
+                                  Подтвердить
+                                </button>
+                              </ActionForm>
+                            ) : null}
+                            {(manage || reopen) && acceptedRow ? (
+                              <ActionForm action={unacceptIdpItemAction}>
+                                <input type="hidden" name="itemId" value={item.id} />
+                                <button className="btn-warn" type="submit">
+                                  Снять подтверждение
+                                </button>
+                              </ActionForm>
+                            ) : null}
+                            {acceptedRow ? <span className="chip mt-2">принято</span> : null}
+                          </>
+                        }
+                      />
                     </tr>
                   );
                 })}
