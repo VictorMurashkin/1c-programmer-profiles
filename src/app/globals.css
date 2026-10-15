@@ -661,11 +661,17 @@ details[open] > .skill-summary::before {
 
 .idp-table {
   width: 100%;
-  min-width: 52rem;
+  min-width: 60rem;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.875rem;
   background: var(--panel-solid);
 }
+
+.idp-table th:nth-child(5) { width: 6.5rem; }
+.idp-table th:nth-child(6) { width: 7.5rem; }
+.idp-table th:nth-child(7) { width: 20rem; }
+.idp-table th:nth-child(8) { width: 7rem; }
 
 .idp-table th,
 .idp-table td {
@@ -673,6 +679,7 @@ details[open] > .skill-summary::before {
   vertical-align: top;
   border-bottom: 1px solid var(--panel-border);
   padding: 0.65rem 0.5rem;
+  overflow-wrap: anywhere;
 }
 
 .idp-confirm-line {
@@ -685,6 +692,34 @@ details[open] > .skill-summary::before {
 .idp-confirm-line form,
 .idp-confirm-line .form-fields {
   width: auto;
+}
+
+.test-question {
+  padding-top: 0.25rem;
+}
+
+.test-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  background: var(--panel-solid);
+}
+
+.test-option:hover,
+.test-option:has(input:checked) {
+  border-color: var(--frontend-stroke);
+  box-shadow: inset 0 0 0 1px var(--frontend-stroke);
+}
+
+.test-option input[type="radio"] {
+  margin: 0;
+  accent-color: var(--frontend-stroke);
 }
 
 .idp-table th {

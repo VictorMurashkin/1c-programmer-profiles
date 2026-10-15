@@ -73,6 +73,9 @@ test("вопрос с одним верным вариантом сохраня�
   );
   await testForm.getByRole("button", { name: "Сохранить тест" }).click();
   await saved;
+  await expect(testForm.getByLabel("Вопрос")).toHaveValue("Сколько верных?");
+  await expect(testForm.getByLabel("Вариант").nth(0)).toHaveValue("Один");
+  await expect(testForm.getByLabel("Вариант").nth(1)).toHaveValue("Два");
   await page.reload();
   await expect(page.getByLabel("Вопрос")).toHaveValue("Сколько верных?");
 });
@@ -84,6 +87,7 @@ test("вопрос без одного верного варианта не за
   await testForm.getByRole("checkbox", { name: /^Верный/ }).nth(0).uncheck();
   await testForm.getByRole("button", { name: "Сохранить тест" }).click();
   await expect(testForm.getByRole("alert")).toHaveText("У вопроса должен быть ровно один верный вариант");
+  await expect(testForm.getByLabel("Вопрос")).toHaveValue("Сколько верных?");
   await page.reload();
   await expect(page.getByLabel("Вопрос")).toHaveValue("Сколько верных?");
 
