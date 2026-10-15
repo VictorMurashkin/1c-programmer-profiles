@@ -196,6 +196,7 @@ a {
 .btn-ghost,
 .btn-primary,
 .btn-archive,
+.btn-warn,
 .btn-danger {
   display: inline-flex;
   align-items: center;
@@ -216,6 +217,7 @@ a {
 .btn-ghost:hover,
 .btn-primary:hover,
 .btn-archive:hover,
+.btn-warn:hover,
 .btn-danger:hover {
   background: var(--toolbar-hover);
 }
@@ -227,6 +229,12 @@ a {
 }
 
 .btn-archive {
+  border-color: var(--cloud-stroke);
+  color: var(--cloud-stroke);
+  text-decoration: none;
+}
+
+.btn-warn {
   border-color: var(--cloud-stroke);
   color: var(--cloud-stroke);
   text-decoration: none;

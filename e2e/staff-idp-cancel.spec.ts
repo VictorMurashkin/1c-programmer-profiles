@@ -1,0 +1,85 @@
+import { expect, test, type Page } from "@playwright/test";
+import { E2E_ADMIN, E2E_ADMIN_PASSWORD } from "./env";
+
+test.describe.configure({ mode: "serial" });
+
+const STAMP = Date.now();
+const STAFF = { login: `e2e.cancel.${STAMP}`, name: `Отмена ${STAMP}`, password: "e2e-cancel-password" };
+let idpPath = "";
+
+async function login(page: Page, account: { login: string; password: string } = E2E_ADMIN) {
+  await page.goto("/login");
+  if (/\/me$/.test(page.url())) {
+    await page.getByRole("button", { name: "Выйти" }).click();
+    await page.goto("/login");
+  }
+  const bootstrap = page.locator("#bootstrap-admin");
+  if (await bootstrap.isVisible()) {
+    await bootstrap.getByLabel("Пароль из .env.local").fill(E2E_ADMIN_PASSWORD);
+    await bootstrap.getByLabel("Логин").fill(E2E_ADMIN.login);
+    await bootstrap.getByLabel("Имя").fill(E2E_ADMIN.name);
+    await bootstrap.getByLabel("Должность").selectOption("team-lead");
+    await bootstrap.getByLabel("Пароль учётки").fill(E2E_ADMIN.password);
+    await bootstrap.getByRole("button", { name: "Создать первого админа" }).click();
+    if (account.login !== E2E_ADMIN.login) {
+      await page.getByRole("button", { name: "Выйти" }).click();
+      await login(page, account);
+      return;
+    }
+  } else {
+    const form = page.locator('form:has(input[name="intent"][value="login"])');
+    await form.getByLabel("Логин").fill(account.login);
+    await form.getByLabel("Пароль", { exact: true }).fill(account.password);
+    await form.getByRole("button", { name: "Войти" }).click();
+  }
+  await expect(page).toHaveURL(/\/me$/);
+}
+
+test("сотрудник плана не отменяет его", async ({ page }) => {
+  await login(page);
+  await page.goto("/people");
+  const person = page.locator("form", { has: page.getByRole("heading", { name: "Новый сотрудник" }) });
+  await person.getByLabel("Логин").fill(STAFF.login);
+  await person.getByLabel("Имя").fill(STAFF.name);
+  await person.getByLabel("Пароль").fill(STAFF.password);
+  await person.getByLabel(/^Должность/).selectOption("junior");
+  await person.getByRole("button", { name: "Создать" }).click();
+  await expect(page.getByRole("link", { name: STAFF.name, exact: true })).toBeVisible();
+
+  await page.goto("/idps");
+  await page.getByLabel(/^Сотрудник/).selectOption({ label: STAFF.name });
+  await page.getByLabel(/^Цель/).selectOption("programmer");
+  await page.getByLabel("Начало").fill("2026-03-01");
+  await page.getByLabel("Конец").fill("2026-09-30");
+  await page.getByRole("button", { name: "Создать" }).click();
+  await page.locator("li", { hasText: STAFF.name }).getByRole("link", { name: "Младший программист → Программист" }).click();
+  idpPath = new URL(page.url()).pathname;
+
+  await login(page, STAFF);
+  await page.goto(idpPath);
+  await expect(page.getByRole("button", { name: "Отменить" })).toHaveCount(0);
+  await expect(page.getByText("активен", { exact: true })).toBeVisible();
+});
+
+test("кнопка «Отменить» в общем стиле и закрывает план", async ({ page }) => {
+  await login(page);
+  await page.goto(idpPath);
+  const cancel = page.getByRole("button", { name: "Отменить" });
+  const refresh = page.getByRole("button", { name: "Обновить разрыв" });
+  const metrics = await Promise.all(
+    [cancel, refresh].map((button) =>
+      button.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { border: style.borderTopWidth, pad: style.paddingTop, color: style.color };
+      }),
+    ),
+  );
+  expect(metrics[0].border).toBe(metrics[1].border);
+  expect(metrics[0].border).not.toBe("0px");
+  expect(metrics[0].pad).toBe(metrics[1].pad);
+  expect(metrics[0].color).not.toBe(metrics[1].color);
+
+  await cancel.click();
+  await expect(page.getByText("отменён", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Отменить" })).toHaveCount(0);
+});
