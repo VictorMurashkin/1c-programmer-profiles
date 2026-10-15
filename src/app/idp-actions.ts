@@ -226,7 +226,10 @@ export async function addIdpItemAction(_prev: ActionResult, formData: FormData, 
         if (!catalog || catalog.archived !== 0) {
           throw new InvariantError("Задание не найдено в справочнике");
         }
-        competencyId = catalog.competencyId;
+        if (catalog.competencyId !== competencyIdRaw) {
+          throw new InvariantError("Это задание другой компетенции");
+        }
+        competencyId = competencyIdRaw;
         assignmentName = catalog.name;
         learnText = catalog.learnText;
         verifyText = catalog.verifyText;

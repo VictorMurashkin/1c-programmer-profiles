@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { addIdpItemAction } from "@/app/idp-actions";
 import { ActionForm } from "@/components/ActionForm";
 
 type PoolRow = { competencyId: string; competencyName: string; requiredLevel: number | null };
-type CatalogRow = { id: string; name: string; competencyName: string };
+type CatalogRow = { id: string; name: string; competencyId: string; competencyName: string };
 
 export function AddIdpItemForm({
   idpId,
@@ -19,6 +20,9 @@ export function AddIdpItemForm({
   pool: PoolRow[];
   catalog: CatalogRow[];
 }) {
+  const [competencyId, setCompetencyId] = useState(pool[0]?.competencyId ?? "");
+  const visible = catalog.filter((row) => row.competencyId === competencyId);
+
   return (
     <ActionForm
       action={addIdpItemAction}
@@ -36,7 +40,13 @@ export function AddIdpItemForm({
       <input type="hidden" name="idpId" value={idpId} />
       <label className="lbl">
         Компетенция
-        <select className="field" name="competencyId" required>
+        <select
+          className="field"
+          name="competencyId"
+          required
+          value={competencyId}
+          onChange={(event) => setCompetencyId(event.target.value)}
+        >
           {pool.map((row) => (
             <option key={row.competencyId} value={row.competencyId}>
               {row.competencyName}
@@ -47,11 +57,11 @@ export function AddIdpItemForm({
       </label>
       <label className="lbl">
         Из справочника
-        <select className="field" name="assignmentId">
+        <select key={competencyId} className="field" name="assignmentId" defaultValue="">
           <option value="">новое задание</option>
-          {catalog.map((row) => (
+          {visible.map((row) => (
             <option key={row.id} value={row.id}>
-              {row.competencyName}: {row.name}
+              {row.name}
             </option>
           ))}
         </select>
