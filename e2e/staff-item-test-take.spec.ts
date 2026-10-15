@@ -160,3 +160,62 @@ test("чужой сотрудник попытку не пишет", async ({ pa
   await page.goto(idpPath);
   await expect(page.getByRole("row", { name: new RegExp(NAME) }).getByText("Итог теста: не сдан, попыток 2")).toBeVisible();
 });
+
+test("дальше не ругается, если вариант уже выбран", async ({ page }) => {
+  const first = `Первый ${STAMP}`;
+  const second = `Второй ${STAMP}`;
+  const title = `Два вопроса ${STAMP}`;
+  await login(page);
+  await page.goto(idpPath);
+  const add = page.locator("form", { has: page.getByRole("heading", { name: "Добавить задание" }) });
+  const competencyLabel = await add.getByLabel(/^Компетенция/).locator("option").nth(0).innerText();
+  await page.goto("/assignments/new");
+  const create = page.locator("form").filter({ has: page.getByRole("button", { name: "Создать" }) });
+  await create.getByLabel(/^Компетенция/).selectOption({ label: competencyLabel.replace(/\s·\sур\.\s\d+$/, "") });
+  await create.getByLabel(/^Название/).fill(title);
+  await create.getByLabel(/^Узнать/).fill("Узнать шаги");
+  await create.getByLabel(/^Проверить/).fill("Проверить шаги");
+  await create.getByRole("button", { name: "Создать" }).click();
+  const testForm = page.locator("form", { has: page.getByRole("button", { name: "Сохранить тест" }) });
+  await expect(async () => {
+    await testForm.getByRole("button", { name: "Добавить вопрос" }).click();
+    await expect(testForm.getByLabel("Вопрос")).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await testForm.getByRole("button", { name: "Добавить вопрос" }).click();
+  await testForm.getByLabel("Вопрос").nth(0).fill(first);
+  await testForm.getByLabel("Вопрос").nth(1).fill(second);
+  const options = testForm.getByLabel("Вариант");
+  await options.nth(0).fill("Да");
+  await options.nth(1).fill("Нет");
+  await options.nth(2).fill("Да");
+  await options.nth(3).fill("Нет");
+  await testForm.getByRole("checkbox", { name: /^Верный/ }).nth(0).check({ force: true });
+  await testForm.getByRole("checkbox", { name: /^Верный/ }).nth(2).check({ force: true });
+  const saved = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("/assignments/"),
+  );
+  await testForm.getByRole("button", { name: "Сохранить тест" }).click();
+  await saved;
+
+  await page.goto(idpPath);
+  const addAgain = page.locator("form", { has: page.getByRole("heading", { name: "Добавить задание" }) });
+  const catalog = addAgain.getByLabel(/^Из справочника/);
+  await catalog.selectOption({ value: (await catalog.locator("option", { hasText: title }).getAttribute("value")) ?? "" });
+  await addAgain.getByRole("button", { name: "Добавить" }).click();
+
+  await login(page, STAFF);
+  await page.goto(idpPath);
+  await page.getByRole("row", { name: new RegExp(title) }).getByRole("link", { name: "Сдать тест" }).click();
+  const run = page.locator("form", { has: page.getByText(first) });
+  await page.getByRole("button", { name: "Дальше" }).click();
+  await expect(page.getByText(first)).toBeVisible();
+  await expect(run.getByRole("alert")).toHaveCount(0);
+  await run.getByRole("radio", { name: "Да", exact: true }).check();
+  await page.getByRole("button", { name: "Дальше" }).click();
+  await expect(page.getByText(second)).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Выберите вариант" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Назад" }).click();
+  await expect(page.getByText(first)).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Выберите вариант" })).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: "Да", exact: true })).toBeChecked();
+});
