@@ -197,6 +197,7 @@ a {
 .btn-primary,
 .btn-archive,
 .btn-warn,
+.btn-success,
 .btn-danger {
   display: inline-flex;
   align-items: center;
@@ -218,6 +219,7 @@ a {
 .btn-primary:hover,
 .btn-archive:hover,
 .btn-warn:hover,
+.btn-success:hover,
 .btn-danger:hover {
   background: var(--toolbar-hover);
 }
@@ -237,6 +239,12 @@ a {
 .btn-warn {
   border-color: var(--cloud-stroke);
   color: var(--cloud-stroke);
+  text-decoration: none;
+}
+
+.btn-success {
+  border-color: var(--backend-stroke);
+  color: var(--backend-stroke);
   text-decoration: none;
 }
 
@@ -653,7 +661,7 @@ details[open] > .skill-summary::before {
 
 .idp-table {
   width: 100%;
-  min-width: 40rem;
+  min-width: 52rem;
   border-collapse: collapse;
   font-size: 0.875rem;
   background: var(--panel-solid);

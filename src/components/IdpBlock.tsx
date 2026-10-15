@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/ActionForm";
 import { AddIdpItemForm } from "@/components/AddIdpItemForm";
+import { IdpItemStatus } from "@/components/IdpItemStatus";
 import { CompetencyLinks } from "@/components/CompetencyLinks";
 import {
   acceptIdpItemAction,
@@ -7,7 +8,6 @@ import {
   cancelIdpAction,
   deleteIdpItemAction,
   refreshIdpPoolAction,
-  setIdpItemStatusAction,
   unacceptIdpItemAction,
   updateIdpItemAction,
 } from "@/app/idp-actions";
@@ -167,6 +167,8 @@ export function IdpBlock({
                   <th>Узнать</th>
                   <th>Проверить</th>
                   <th>Срок</th>
+                  <th>Статус</th>
+                  <th>Подтверждение</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,47 +179,6 @@ export function IdpBlock({
                     <tr key={item.id}>
                       <td>
                         <div className="font-medium">{item.assignmentName}</div>
-                        <span className="chip mt-2">
-                          {acceptedRow ? "принято" : ITEM_STATUS[item.status] ?? item.status}
-                        </span>
-                        {canTickRow ? (
-                          <ActionForm action={setIdpItemStatusAction} className="mt-2 flex flex-wrap items-end gap-2">
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <label className="lbl">
-                              Ход
-                              <select className="field" name="status" defaultValue={item.status}>
-                                <option value="not_started">не начат</option>
-                                <option value="in_progress">в работе</option>
-                                <option value="done">сделал</option>
-                              </select>
-                            </label>
-                            <button className="btn-quiet" type="submit">
-                              Ок
-                            </button>
-                          </ActionForm>
-                        ) : null}
-                        {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
-                          <p className="mt-2 text-sm">
-                            Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
-                            {attempts.get(item.id)?.count}
-                          </p>
-                        ) : null}
-                        {manage && !acceptedRow ? (
-                          <ActionForm action={acceptIdpItemAction} className="mt-2">
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <button className="btn" type="submit">
-                              Принять
-                            </button>
-                          </ActionForm>
-                        ) : null}
-                        {(manage || reopen) && acceptedRow ? (
-                          <ActionForm action={unacceptIdpItemAction} className="mt-2">
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <button className="btn-quiet" type="submit">
-                              Снять приёмку
-                            </button>
-                          </ActionForm>
-                        ) : null}
                         {manage ? (
                           <details className="mt-2">
                             <summary className="cursor-pointer text-sm">Править</summary>
@@ -290,6 +251,38 @@ export function IdpBlock({
                         ) : null}
                       </td>
                       <td>{item.dueOn ?? "—"}</td>
+                      <td>
+                        {canTickRow ? (
+                          <IdpItemStatus itemId={item.id} status={item.status} />
+                        ) : (
+                          ITEM_STATUS[item.status] ?? item.status
+                        )}
+                      </td>
+                      <td>
+                        {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
+                          <p className="mb-2 text-sm">
+                            Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
+                            {attempts.get(item.id)?.count}
+                          </p>
+                        ) : null}
+                        {manage && !acceptedRow ? (
+                          <ActionForm action={acceptIdpItemAction}>
+                            <input type="hidden" name="itemId" value={item.id} />
+                            <button className="btn-success" type="submit">
+                              Подтвердить
+                            </button>
+                          </ActionForm>
+                        ) : null}
+                        {(manage || reopen) && acceptedRow ? (
+                          <ActionForm action={unacceptIdpItemAction}>
+                            <input type="hidden" name="itemId" value={item.id} />
+                            <button className="btn-warn" type="submit">
+                              Снять подтверждение
+                            </button>
+                          </ActionForm>
+                        ) : null}
+                        {acceptedRow ? <span className="chip mt-2">принято</span> : null}
+                      </td>
                     </tr>
                   );
                 })}

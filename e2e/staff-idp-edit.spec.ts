@@ -70,43 +70,75 @@ test("форма правки строки закрыта, пока её не р
 
   idpPath = new URL(page.url()).pathname;
   const row = page.getByRole("row", { name: new RegExp(GOAL) });
+  const headers = row.locator("xpath=ancestor::table[1]").getByRole("columnheader");
+  await expect(headers.nth(3)).toHaveText("Срок");
+  await expect(headers.nth(4)).toHaveText("Статус");
+  await expect(headers.nth(5)).toHaveText("Подтверждение");
   await expect(row.getByRole("button", { name: "Сохранить тексты" })).toBeHidden();
   await row.getByText("Править", { exact: true }).click();
   await expect(row.getByRole("button", { name: "Сохранить тексты" })).toBeVisible();
 });
 
-test("сотрудник меняет ход строки, после перезагрузки он на месте", async ({ page }) => {
+test("сотрудник меняет статус строки, после перезагрузки он в колонке после срока", async ({ page }) => {
   await login(page, STAFF);
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(GOAL) });
-  await row.getByLabel(/^Ход/).selectOption("in_progress");
-  await row.getByRole("button", { name: "Ок" }).click();
-  await expect(row.getByText("в работе", { exact: true }).filter({ visible: true })).toHaveCount(1);
+  await expect(row.getByRole("button", { name: "Ок" })).toHaveCount(0);
+  const posted = page.waitForResponse((response) => response.request().method() === "POST");
+  await row.getByLabel("Статус").selectOption("in_progress");
+  await posted;
+  await expect(row.getByLabel("Статус")).toHaveValue("in_progress");
   await page.reload();
-  await expect(
-    page.getByRole("row", { name: new RegExp(GOAL) }).getByText("в работе", { exact: true }).filter({ visible: true }),
-  ).toHaveCount(1);
+  const again = page.getByRole("row", { name: new RegExp(GOAL) });
+  await expect(again.getByLabel("Статус")).toHaveValue("in_progress");
+  const cells = again.getByRole("cell");
+  await expect(cells.nth(4)).toContainText("Статус");
+  await expect(cells.nth(3)).not.toContainText("Статус");
 });
 
-test("после приёмки сотрудник ход не меняет", async ({ page }) => {
+test("подтверждение в своей колонке, без теста строка тоже подтверждается", async ({ page }) => {
   await login(page);
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(GOAL) });
-  await row.getByRole("button", { name: "Принять" }).click();
+  const confirm = row.getByRole("button", { name: "Подтвердить" });
+  const neighbor = page.getByRole("button", { name: "Обновить разрыв" });
+  const confirmBox = await confirm.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { border: style.borderTopWidth, pad: style.paddingTop, color: style.color };
+  });
+  const neighborBox = await neighbor.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { border: style.borderTopWidth, pad: style.paddingTop, color: style.color };
+  });
+  expect(confirmBox.border).toBe(neighborBox.border);
+  expect(confirmBox.pad).toBe(neighborBox.pad);
+  expect(confirmBox.border).not.toBe("0px");
+  expect(confirmBox.color).not.toBe(neighborBox.color);
+  await confirm.click();
+  const undo = row.getByRole("button", { name: "Снять подтверждение" });
+  const undoBox = await undo.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { border: style.borderTopWidth, pad: style.paddingTop, color: style.color };
+  });
+  expect(undoBox.border).toBe(neighborBox.border);
+  expect(undoBox.pad).toBe(neighborBox.pad);
+  expect(undoBox.color).not.toBe(confirmBox.color);
   await expect(row.getByText("принято", { exact: true }).filter({ visible: true })).toHaveCount(1);
 
   await login(page, STAFF);
   await page.goto(idpPath);
   const own = page.getByRole("row", { name: new RegExp(GOAL) });
   await expect(own.getByText("принято", { exact: true }).filter({ visible: true })).toHaveCount(1);
-  await expect(own.getByLabel(/^Ход/)).toHaveCount(0);
-  await expect(own.getByRole("button", { name: "Принять" })).toHaveCount(0);
+  await expect(own.getByLabel("Статус")).toHaveCount(0);
+  await expect(own.getByRole("button", { name: "Подтвердить" })).toHaveCount(0);
 });
 
 test("чужой сотрудник не видит приёмку и правку", async ({ page }) => {
   await login(page, OTHER);
   await page.goto(idpPath);
-  await expect(page.getByRole("button", { name: "Принять" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Подтвердить" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Снять подтверждение" })).toHaveCount(0);
+  await expect(page.getByLabel("Статус")).toHaveCount(0);
   await expect(page.getByText("Править", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Сохранить тексты" })).toHaveCount(0);
 });
