@@ -185,22 +185,9 @@ export function IdpBlock({
                         learnExtra={<CompetencyLinks links={links.get(group.competencyId) ?? []} />}
                         test={
                           <>
-                            {(prompts.get(item.id) ?? []).length > 0 ? (
-                              <ul>
-                                {(prompts.get(item.id) ?? []).map((prompt, index) => (
-                                  <li key={`${item.id}-${index}`}>{prompt}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="muted">нет</p>
-                            )}
-                            {attempts.get(item.id)?.passed === true ? <p className="mt-2">сдан</p> : null}
-                            {attempts.get(item.id)?.passed === false ? <p className="mt-2">не сдан</p> : null}
+                            {(prompts.get(item.id) ?? []).length === 0 ? <p className="muted">нет</p> : null}
                             {(attempts.get(item.id)?.count ?? 0) > 0 ? (
-                              <p className="muted mt-1 text-sm">Попыток: {attempts.get(item.id)?.count}</p>
-                            ) : null}
-                            {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
-                              <p className="mt-2 text-sm">
+                              <p className="text-sm">
                                 Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
                                 {attempts.get(item.id)?.count}
                               </p>

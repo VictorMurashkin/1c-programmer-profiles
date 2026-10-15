@@ -662,10 +662,16 @@ details[open] > .skill-summary::before {
 .idp-table {
   width: 100%;
   min-width: 60rem;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.875rem;
   background: var(--panel-solid);
 }
+
+.idp-table th:nth-child(5) { width: 6.5rem; }
+.idp-table th:nth-child(6) { width: 7.5rem; }
+.idp-table th:nth-child(7) { width: 20rem; }
+.idp-table th:nth-child(8) { width: 7rem; }
 
 .idp-table th,
 .idp-table td {
@@ -673,6 +679,7 @@ details[open] > .skill-summary::before {
   vertical-align: top;
   border-bottom: 1px solid var(--panel-border);
   padding: 0.65rem 0.5rem;
+  overflow-wrap: anywhere;
 }
 
 .idp-confirm-line {

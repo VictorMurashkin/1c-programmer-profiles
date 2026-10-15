@@ -144,7 +144,7 @@ test("сотрудник не видит бланк приёмки", async ({ pa
   await login(page, STAFF);
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(NAME) });
-  await expect(row.getByText(/Итог теста/)).toHaveCount(0);
+  await expect(row.getByText("Итог теста: не сдан, попыток 2")).toBeVisible();
   await expect(row.getByRole("button", { name: "Подтвердить" })).toHaveCount(0);
   await expect(row.getByText(RIGHT)).toHaveCount(0);
 });

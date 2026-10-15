@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Option = { text: string; isCorrect: boolean };
 type Question = { prompt: string; options: Option[] };
@@ -16,13 +16,22 @@ const EMPTY: Question = {
 /** Редактор теста справочника. Верный вариант отмечает чекбокс, сервер требует ровно один. */
 export function AssignmentTestFields({ initial }: { initial: Question[] }) {
   const [questions, setQuestions] = useState<Question[]>(initial);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const form = rootRef.current?.closest("form");
+    if (!form) return;
+    const keep = (event: Event) => event.preventDefault();
+    form.addEventListener("reset", keep);
+    return () => form.removeEventListener("reset", keep);
+  }, []);
 
   function update(next: Question[]) {
     setQuestions(next);
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={rootRef} className="space-y-4">
       {questions.map((question, questionIndex) => (
         <fieldset key={questionIndex} className="test-question space-y-2">
           <p className="section-title mb-0">Вопрос {questionIndex + 1}</p>
@@ -48,7 +57,7 @@ export function AssignmentTestFields({ initial }: { initial: Question[] }) {
             </div>
           ))}
           <button
-            className="btn-quiet"
+            className="btn w-fit"
             type="button"
             onClick={() => {
               const next = questions.map((item, index) =>

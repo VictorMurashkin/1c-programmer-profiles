@@ -13,7 +13,7 @@ let withTestPath = "";
 let withoutTestPath = "";
 let idpPath = "";
 
-async function login(page: Page) {
+async function login(page: Page, account: { login: string; password: string } = E2E_ADMIN) {
   await page.goto("/login");
   if (/\/me$/.test(page.url())) {
     await page.getByRole("button", { name: "Выйти" }).click();
@@ -27,10 +27,15 @@ async function login(page: Page) {
     await bootstrap.getByLabel("Должность").selectOption("team-lead");
     await bootstrap.getByLabel("Пароль учётки").fill(E2E_ADMIN.password);
     await bootstrap.getByRole("button", { name: "Создать первого админа" }).click();
-  } else {
+    if (account.login !== E2E_ADMIN.login) {
+      await page.getByRole("button", { name: "Выйти" }).click();
+      await page.goto("/login");
+    }
+  }
+  if (!/\/me$/.test(page.url())) {
     const form = page.locator('form:has(input[name="intent"][value="login"])');
-    await form.getByLabel("Логин").fill(E2E_ADMIN.login);
-    await form.getByLabel("Пароль", { exact: true }).fill(E2E_ADMIN.password);
+    await form.getByLabel("Логин").fill(account.login);
+    await form.getByLabel("Пароль", { exact: true }).fill(account.password);
     await form.getByRole("button", { name: "Войти" }).click();
   }
   await expect(page).toHaveURL(/\/me$/);
@@ -101,18 +106,22 @@ test("задание с тестом копирует вопросы в стро
   const catalog = addAgain.getByLabel(/^Из справочника/);
   await catalog.selectOption({ value: (await catalog.locator("option", { hasText: WITH_TEST }).getAttribute("value")) ?? "" });
   await addAgain.getByRole("button", { name: "Добавить" }).click();
-  const row = page.getByRole("row", { name: new RegExp(WITH_TEST) });
-  await expect(row.getByRole("listitem")).toHaveText(PROMPT);
+
+  await login(page, STAFF);
+  await page.goto(idpPath);
+  await page.getByRole("row", { name: new RegExp(WITH_TEST) }).getByRole("link", { name: "Сдать тест" }).click();
+  await expect(page.getByText(PROMPT)).toBeVisible();
 });
 
 test("правка справочника не меняет снимок строки", async ({ page }) => {
   await login(page);
   await page.goto(withTestPath);
   await saveQuestion(page, CHANGED);
+  await login(page, STAFF);
   await page.goto(idpPath);
-  const row = page.getByRole("row", { name: new RegExp(WITH_TEST) });
-  await expect(row.getByRole("listitem")).toHaveText(PROMPT);
-  await expect(row.getByText(CHANGED)).toHaveCount(0);
+  await page.getByRole("row", { name: new RegExp(WITH_TEST) }).getByRole("link", { name: "Сдать тест" }).click();
+  await expect(page.getByText(PROMPT)).toBeVisible();
+  await expect(page.getByText(CHANGED)).toHaveCount(0);
 });
 
 test("строка без теста не получает вопросы задним числом", async ({ page }) => {
@@ -125,10 +134,14 @@ test("строка без теста не получает вопросы зад
   });
   await add.getByRole("button", { name: "Добавить" }).click();
   const row = page.getByRole("row", { name: new RegExp(WITHOUT_TEST) });
-  await expect(row.getByRole("listitem")).toHaveCount(0);
+  await expect(row.getByText("нет", { exact: true })).toBeVisible();
+  await expect(row.getByRole("link", { name: "Сдать тест" })).toHaveCount(0);
 
   await page.goto(withoutTestPath);
   await saveQuestion(page, CHANGED);
+  await login(page, STAFF);
   await page.goto(idpPath);
-  await expect(page.getByRole("row", { name: new RegExp(WITHOUT_TEST) }).getByRole("listitem")).toHaveCount(0);
+  const plain = page.getByRole("row", { name: new RegExp(WITHOUT_TEST) });
+  await expect(plain.getByText("нет", { exact: true })).toBeVisible();
+  await expect(plain.getByRole("link", { name: "Сдать тест" })).toHaveCount(0);
 });

@@ -117,7 +117,7 @@ test("верный ответ показывает «сдан», строка н
   await page.goto(idpPath);
   const after = page.getByRole("row", { name: new RegExp(NAME) });
   await expect(after.getByText("принято", { exact: true })).toHaveCount(0);
-  await expect(after.getByText("сдан", { exact: true })).toBeVisible();
+  await expect(after.getByText("Итог теста: сдан, попыток 1")).toBeVisible();
 });
 
 test("неверный ответ показывает «не сдан», сдать можно снова", async ({ page }) => {
@@ -147,7 +147,7 @@ test("после приёмки попытка не записывается", a
   await page.goto(idpPath);
   const own = page.getByRole("row", { name: new RegExp(NAME) });
   await expect(own.getByRole("link", { name: "Сдать тест" })).toHaveCount(0);
-  await expect(own.getByText("Попыток: 2")).toBeVisible();
+  await expect(own.getByText("Итог теста: не сдан, попыток 2")).toBeVisible();
 });
 
 test("чужой сотрудник попытку не пишет", async ({ page }) => {
@@ -158,5 +158,5 @@ test("чужой сотрудник попытку не пишет", async ({ pa
 
   await login(page, STAFF);
   await page.goto(idpPath);
-  await expect(page.getByRole("row", { name: new RegExp(NAME) }).getByText("Попыток: 2")).toBeVisible();
+  await expect(page.getByRole("row", { name: new RegExp(NAME) }).getByText("Итог теста: не сдан, попыток 2")).toBeVisible();
 });
