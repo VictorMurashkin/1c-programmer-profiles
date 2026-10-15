@@ -144,7 +144,7 @@ export function IdpBlock({
             </ActionForm>
             <ActionForm action={cancelIdpAction}>
               <input type="hidden" name="idpId" value={idp.id} />
-              <button className="btn-quiet" type="submit">
+              <button className="btn-warn" type="submit">
                 Отменить
               </button>
             </ActionForm>
