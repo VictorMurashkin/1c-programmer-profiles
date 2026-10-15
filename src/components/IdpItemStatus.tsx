@@ -29,9 +29,8 @@ export function IdpItemStatus({ itemId, status }: { itemId: number; status: stri
   }
 
   return (
-    <label className="lbl">
-      Статус
-      <select className="field" value={current} onChange={onChange}>
+    <>
+      <select className="field" aria-label="Статус" value={current} onChange={onChange}>
         {STATUS.map(([value, label]) => (
           <option key={value} value={value}>
             {label}
@@ -43,6 +42,6 @@ export function IdpItemStatus({ itemId, status }: { itemId: number; status: stri
           {state.error}
         </p>
       ) : null}
-    </label>
+    </>
   );
 }

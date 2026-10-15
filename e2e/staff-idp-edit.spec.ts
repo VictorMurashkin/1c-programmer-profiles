@@ -74,6 +74,7 @@ test("форма правки строки закрыта, пока её не р
   await expect(headers.nth(3)).toHaveText("Срок");
   await expect(headers.nth(4)).toHaveText("Статус");
   await expect(headers.nth(5)).toHaveText("Подтверждение");
+  await expect(headers.nth(6)).toHaveText("Действия");
   await expect(row.getByRole("button", { name: "Сохранить тексты" })).toBeHidden();
   await expect(row.getByLabel("Название")).toBeHidden();
   await row.getByText("Править", { exact: true }).click();
@@ -99,6 +100,10 @@ test("новое название остаётся в ячейке после п
   const posted = page.waitForResponse((response) => response.request().method() === "POST");
   await editing.getByRole("button", { name: "Сохранить тексты" }).click();
   await posted;
+  const saved = page.getByRole("row", { name: /Собрать сводку/ });
+  await expect(saved.getByText("Собрать сводку", { exact: true })).toBeVisible();
+  await expect(saved.getByLabel("Название")).toHaveCount(0);
+  await expect(saved.getByRole("button", { name: "Править" })).toBeVisible();
   await page.reload();
   const again = page.getByRole("row", { name: /Собрать сводку/ });
   await expect(again.getByText("Собрать сводку", { exact: true })).toBeVisible();
@@ -141,14 +146,14 @@ test("срок вне периода не записывается", async ({ pa
   await page.reload();
   const again = page.getByRole("row", { name: new RegExp(GOAL) });
   await expect(again.getByText("—", { exact: true })).toBeVisible();
-  await expect(again.getByLabel("Срок")).toHaveValue("");
+  await expect(again.getByLabel("Срок")).toHaveCount(0);
 });
 
 test("сотрудник меняет статус строки, после перезагрузки он в колонке после срока", async ({ page }) => {
   await login(page, STAFF);
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(GOAL) });
-  await expect(row.getByRole("checkbox", { name: "Править" })).toHaveCount(0);
+  await expect(row.getByRole("button", { name: "Править" })).toHaveCount(0);
   await expect(row.getByLabel("Название")).toHaveCount(0);
   await expect(row.getByRole("button", { name: "Ок" })).toHaveCount(0);
   const posted = page.waitForResponse((response) => response.request().method() === "POST");
@@ -159,8 +164,9 @@ test("сотрудник меняет статус строки, после пе
   const again = page.getByRole("row", { name: new RegExp(GOAL) });
   await expect(again.getByLabel("Статус")).toHaveValue("in_progress");
   const cells = again.getByRole("cell");
-  await expect(cells.nth(4)).toContainText("Статус");
-  await expect(cells.nth(3)).not.toContainText("Статус");
+  await expect(cells.nth(4).getByLabel("Статус")).toHaveValue("in_progress");
+  await expect(cells.nth(4)).not.toContainText("Статус");
+  await expect(cells.nth(3).getByLabel("Статус")).toHaveCount(0);
 });
 
 test("подтверждение в своей колонке, без теста строка тоже подтверждается", async ({ page }) => {
@@ -191,6 +197,14 @@ test("подтверждение в своей колонке, без теста
   expect(undoBox.pad).toBe(neighborBox.pad);
   expect(undoBox.color).not.toBe(confirmBox.color);
   await expect(row.getByText("принято", { exact: true }).filter({ visible: true })).toHaveCount(1);
+  const chip = row.getByText("принято", { exact: true });
+  const undoPlace = await undo.boundingBox();
+  const chipPlace = await chip.boundingBox();
+  expect(undoPlace).not.toBeNull();
+  expect(chipPlace).not.toBeNull();
+  const undoMid = undoPlace!.y + undoPlace!.height / 2;
+  const chipMid = chipPlace!.y + chipPlace!.height / 2;
+  expect(Math.abs(undoMid - chipMid)).toBeLessThan(8);
 
   await login(page, STAFF);
   await page.goto(idpPath);

@@ -168,6 +168,7 @@ export function IdpBlock({
                   <th>Срок</th>
                   <th>Статус</th>
                   <th>Подтверждение</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -233,23 +234,25 @@ export function IdpBlock({
                                 {attempts.get(item.id)?.count}
                               </p>
                             ) : null}
-                            {manage && !acceptedRow ? (
-                              <ActionForm action={acceptIdpItemAction}>
-                                <input type="hidden" name="itemId" value={item.id} />
-                                <button className="btn-success" type="submit">
-                                  Подтвердить
-                                </button>
-                              </ActionForm>
-                            ) : null}
-                            {(manage || reopen) && acceptedRow ? (
-                              <ActionForm action={unacceptIdpItemAction}>
-                                <input type="hidden" name="itemId" value={item.id} />
-                                <button className="btn-warn" type="submit">
-                                  Снять подтверждение
-                                </button>
-                              </ActionForm>
-                            ) : null}
-                            {acceptedRow ? <span className="chip mt-2">принято</span> : null}
+                            <div className="idp-confirm-line">
+                              {manage && !acceptedRow ? (
+                                <ActionForm action={acceptIdpItemAction}>
+                                  <input type="hidden" name="itemId" value={item.id} />
+                                  <button className="btn-success" type="submit">
+                                    Подтвердить
+                                  </button>
+                                </ActionForm>
+                              ) : null}
+                              {(manage || reopen) && acceptedRow ? (
+                                <ActionForm action={unacceptIdpItemAction}>
+                                  <input type="hidden" name="itemId" value={item.id} />
+                                  <button className="btn-warn" type="submit">
+                                    Снять подтверждение
+                                  </button>
+                                </ActionForm>
+                              ) : null}
+                              {acceptedRow ? <span className="chip">принято</span> : null}
+                            </div>
                           </>
                         }
                       />
