@@ -81,7 +81,7 @@ export function IdpItemEdit({
             <ActionForm id={formId} action={updateIdpItemAction} onSuccess={close}>
               <input type="hidden" name="itemId" value={itemId} />
               <button className="btn" type="submit">
-                Сохранить тексты
+                Сохранить
               </button>
             </ActionForm>
             <ActionForm action={deleteIdpItemAction}>

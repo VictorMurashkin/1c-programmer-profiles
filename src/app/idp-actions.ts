@@ -203,7 +203,15 @@ export async function cancelIdpAction(_prev: ActionResult, formData: FormData, r
 export async function addIdpItemAction(_prev: ActionResult, formData: FormData, retried = false): Promise<ActionResult> {
     try {
       const actor = await requireEmployee();
-      const idp = requireActiveManagedIdp(actor, String(formData.get("idpId") ?? ""));
+      const idpId = String(formData.get("idpId") ?? "");
+      const found = getIdp(idpId);
+      if (!found || (found.status !== "active" && found.status !== "completed")) {
+        throw new InvariantError("Активный ИПР не найден");
+      }
+      if (!canManageEmployee(actor, found.employeeId)) {
+        throw new InvariantError("Нельзя править этот ИПР");
+      }
+      const idp = found;
       const competencyIdRaw = String(formData.get("competencyId") ?? "");
       const assignmentId = String(formData.get("assignmentId") ?? "").trim();
       const dueOn = parseOptionalDue(String(formData.get("dueOn") ?? ""), idp.periodStart, idp.periodEnd);
@@ -265,7 +273,7 @@ export async function addIdpItemAction(_prev: ActionResult, formData: FormData, 
             .returning({ id: idpItems.id })
             .get();
           copyAssignmentTest(item.id, catalogId);
-          db.update(idps).set({ updatedAt: now() }).where(eq(idps.id, idp.id)).run();
+          db.update(idps).set({ status: "active", updatedAt: now() }).where(eq(idps.id, idp.id)).run();
           return true;
         })
         .deferred(null);

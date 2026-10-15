@@ -269,7 +269,7 @@ export function IdpBlock({
             Заданий пока нет. ИПР станет выполненным, когда добавите хотя бы одно и примете все.
           </p>
         ) : null}
-        {manage && pool.length > 0 ? (
+        {(manage || reopen) && pool.length > 0 ? (
           <AddIdpItemForm
             idpId={idp.id}
             periodStart={idp.periodStart}
