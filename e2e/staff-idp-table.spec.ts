@@ -72,7 +72,7 @@ test("карточка ИПР показывает сотрудника, пер�
   await expect(row.getByRole("cell").nth(1)).toContainText(LEARN);
   await expect(row.getByRole("cell").nth(1)).not.toContainText("Программист");
   await expect(row.getByRole("cell").nth(2)).toContainText(VERIFY);
-  await expect(row.getByRole("cell").nth(3)).toHaveText("2026-06-15");
+  await expect(row.getByRole("cell").nth(3).getByText("2026-06-15", { exact: true })).toBeVisible();
 });
 
 test("гость с карточки ИПР уходит на вход", async ({ page }) => {

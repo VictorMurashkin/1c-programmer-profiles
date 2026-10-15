@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useCallback, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import type { ActionResult } from "@/lib/action-result";
 
 const DOT_DATE_RE = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
@@ -74,6 +74,8 @@ export function ActionForm({
   className,
   beforeSubmit,
   successPath,
+  id,
+  onSuccess,
 }: {
   action: (state: ActionResult, formData: FormData) => Promise<ActionResult>;
   children: React.ReactNode;
@@ -81,6 +83,10 @@ export function ActionForm({
   beforeSubmit?: (formData: FormData) => string | null;
   /** Куда перейти после успешного сохранения. `redirect()` из действия с `useActionState` вызывать нельзя. */
   successPath?: string;
+  /** Поля в других ячейках строки ссылаются на форму через атрибут `form`. */
+  id?: string;
+  /** После успешной записи, когда страница остаётся на месте. */
+  onSuccess?: () => void;
 }) {
   const runAndLeave = useCallback(
     async (prev: ActionResult, formData: FormData) => {
@@ -100,6 +106,17 @@ export function ActionForm({
   const [state, formAction, pending] = useActionState(successPath ? runAndLeave : action, null);
   const [localError, setLocalError] = useState<string | null>(null);
   const error = localError ?? state?.error ?? null;
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    if (pending) {
+      wasPending.current = true;
+      return;
+    }
+    if (!wasPending.current) return;
+    wasPending.current = false;
+    if (!error) onSuccess?.();
+  }, [pending, error, onSuccess]);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     setLocalError(null);
@@ -118,7 +135,7 @@ export function ActionForm({
   }
 
   return (
-    <form action={formAction} className={className} noValidate onSubmit={onSubmit}>
+    <form id={id} action={formAction} className={className} noValidate onSubmit={onSubmit}>
       <FormBody className={className} error={error} pending={pending}>
         {children}
       </FormBody>

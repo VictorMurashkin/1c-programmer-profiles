@@ -675,6 +675,18 @@ details[open] > .skill-summary::before {
   padding: 0.65rem 0.5rem;
 }
 
+.idp-confirm-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.idp-confirm-line form,
+.idp-confirm-line .form-fields {
+  width: auto;
+}
+
 .idp-table th {
   font-size: 0.65rem;
   letter-spacing: 0.1em;
