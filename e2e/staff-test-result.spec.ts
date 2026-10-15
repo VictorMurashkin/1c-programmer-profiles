@@ -104,7 +104,7 @@ test("рядом с приёмкой видно «сдан» и число по�
   await login(page);
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(NAME) });
-  const accept = row.getByRole("button", { name: "Принять" });
+  const accept = row.getByRole("button", { name: "Подтвердить" });
   await expect(accept).toBeVisible();
   await expect(row.getByText("Итог теста: сдан, попыток 1")).toBeVisible();
   await expect(row.getByText(RIGHT)).toHaveCount(0);
@@ -125,7 +125,7 @@ test("не сданный тест не мешает приёмке", async ({ p
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(NAME) });
   await expect(row.getByText("Итог теста: не сдан, попыток 2")).toBeVisible();
-  await row.getByRole("button", { name: "Принять" }).click();
+  await row.getByRole("button", { name: "Подтвердить" }).click();
   await expect(row.getByText("принято", { exact: true }).filter({ visible: true })).toBeVisible();
 });
 
@@ -135,7 +135,7 @@ test("строка без теста принимается и не помеча
   const row = page.getByRole("row", { name: new RegExp(PLAIN) });
   await expect(row.getByText("сдан", { exact: true })).toHaveCount(0);
   await expect(row.getByText(/Итог теста/)).toHaveCount(0);
-  await row.getByRole("button", { name: "Принять" }).click();
+  await row.getByRole("button", { name: "Подтвердить" }).click();
   await expect(row.getByText("принято", { exact: true }).filter({ visible: true })).toBeVisible();
   await expect(row.getByText("сдан", { exact: true })).toHaveCount(0);
 });
@@ -145,6 +145,6 @@ test("сотрудник не видит бланк приёмки", async ({ pa
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(NAME) });
   await expect(row.getByText(/Итог теста/)).toHaveCount(0);
-  await expect(row.getByRole("button", { name: "Принять" })).toHaveCount(0);
+  await expect(row.getByRole("button", { name: "Подтвердить" })).toHaveCount(0);
   await expect(row.getByText(RIGHT)).toHaveCount(0);
 });

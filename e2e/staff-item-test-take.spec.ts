@@ -130,7 +130,7 @@ test("после приёмки попытка не записывается", a
   await login(page);
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(NAME) });
-  await row.getByRole("button", { name: "Принять" }).click();
+  await row.getByRole("button", { name: "Подтвердить" }).click();
   await expect(row.getByText("принято", { exact: true }).filter({ visible: true })).toBeVisible();
 
   await login(page, STAFF);
