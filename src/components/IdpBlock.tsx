@@ -162,6 +162,7 @@ export function IdpBlock({
                   <th>Цель</th>
                   <th>Узнать</th>
                   <th>Проверить</th>
+                  <th>Тест</th>
                   <th>Срок</th>
                   <th>Статус</th>
                   <th>Подтверждение</th>
@@ -182,19 +183,27 @@ export function IdpBlock({
                         dueOn={item.dueOn}
                         manage={manage}
                         learnExtra={<CompetencyLinks links={links.get(group.competencyId) ?? []} />}
-                        verifyExtra={
+                        test={
                           <>
                             {(prompts.get(item.id) ?? []).length > 0 ? (
-                              <ul className="mt-2">
+                              <ul>
                                 {(prompts.get(item.id) ?? []).map((prompt, index) => (
                                   <li key={`${item.id}-${index}`}>{prompt}</li>
                                 ))}
                               </ul>
-                            ) : null}
+                            ) : (
+                              <p className="muted">нет</p>
+                            )}
                             {attempts.get(item.id)?.passed === true ? <p className="mt-2">сдан</p> : null}
                             {attempts.get(item.id)?.passed === false ? <p className="mt-2">не сдан</p> : null}
                             {(attempts.get(item.id)?.count ?? 0) > 0 ? (
                               <p className="muted mt-1 text-sm">Попыток: {attempts.get(item.id)?.count}</p>
+                            ) : null}
+                            {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
+                              <p className="mt-2 text-sm">
+                                Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
+                                {attempts.get(item.id)?.count}
+                              </p>
                             ) : null}
                             {actor.id === idp.employeeId && open && !acceptedRow && (prompts.get(item.id)?.length ?? 0) > 0 ? (
                               <p className="mt-2">
@@ -214,12 +223,6 @@ export function IdpBlock({
                         }
                         confirm={
                           <>
-                            {manage && (attempts.get(item.id)?.count ?? 0) > 0 ? (
-                              <p className="mb-2 text-sm">
-                                Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
-                                {attempts.get(item.id)?.count}
-                              </p>
-                            ) : null}
                             <div className="idp-confirm-line">
                               {manage && !acceptedRow ? (
                                 <ActionForm action={acceptIdpItemAction}>

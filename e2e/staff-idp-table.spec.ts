@@ -64,6 +64,7 @@ test("карточка ИПР показывает сотрудника, пер�
   await expect(table.getByRole("columnheader", { name: "Цель" })).toBeVisible();
   await expect(table.getByRole("columnheader", { name: "Узнать" })).toBeVisible();
   await expect(table.getByRole("columnheader", { name: "Проверить" })).toBeVisible();
+  await expect(table.getByRole("columnheader", { name: "Тест" })).toBeVisible();
   await expect(table.getByRole("columnheader", { name: "Срок" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).filter({ hasNotText: "Добавить задание" })).toHaveCount(1);
 
@@ -72,7 +73,7 @@ test("карточка ИПР показывает сотрудника, пер�
   await expect(row.getByRole("cell").nth(1)).toContainText(LEARN);
   await expect(row.getByRole("cell").nth(1)).not.toContainText("Программист");
   await expect(row.getByRole("cell").nth(2)).toContainText(VERIFY);
-  await expect(row.getByRole("cell").nth(3).getByText("2026-06-15", { exact: true })).toBeVisible();
+  await expect(row.getByRole("cell").nth(4).getByText("2026-06-15", { exact: true })).toBeVisible();
 });
 
 test("гость с карточки ИПР уходит на вход", async ({ page }) => {

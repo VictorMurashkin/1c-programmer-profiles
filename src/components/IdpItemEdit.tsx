@@ -12,7 +12,7 @@ export function IdpItemEdit({
   dueOn,
   manage,
   learnExtra,
-  verifyExtra,
+  test,
   status,
   confirm,
 }: {
@@ -23,7 +23,7 @@ export function IdpItemEdit({
   dueOn: string | null;
   manage: boolean;
   learnExtra: ReactNode;
-  verifyExtra: ReactNode;
+  test: ReactNode;
   status: ReactNode;
   confirm: ReactNode;
 }) {
@@ -59,8 +59,8 @@ export function IdpItemEdit({
         ) : (
           <p className="whitespace-pre-wrap">{verifyText}</p>
         )}
-        {verifyExtra}
       </td>
+      <td>{test}</td>
       <td>
         {open ? (
           <input className="field" type="date" name="dueOn" form={formId} aria-label="Срок" defaultValue={dueOn ?? ""} />

@@ -71,10 +71,11 @@ test("форма правки строки закрыта, пока её не р
   idpPath = new URL(page.url()).pathname;
   const row = page.getByRole("row", { name: new RegExp(GOAL) });
   const headers = row.locator("xpath=ancestor::table[1]").getByRole("columnheader");
-  await expect(headers.nth(3)).toHaveText("Срок");
-  await expect(headers.nth(4)).toHaveText("Статус");
-  await expect(headers.nth(5)).toHaveText("Подтверждение");
-  await expect(headers.nth(6)).toHaveText("Действия");
+  await expect(headers.nth(3)).toHaveText("Тест");
+  await expect(headers.nth(4)).toHaveText("Срок");
+  await expect(headers.nth(5)).toHaveText("Статус");
+  await expect(headers.nth(6)).toHaveText("Подтверждение");
+  await expect(headers.nth(7)).toHaveText("Действия");
   await expect(row.getByRole("button", { name: "Сохранить", exact: true })).toBeHidden();
   await expect(row.getByLabel("Название")).toBeHidden();
   await row.getByText("Править", { exact: true }).click();
@@ -211,9 +212,9 @@ test("сотрудник меняет статус строки, после пе
   const again = page.getByRole("row", { name: new RegExp(GOAL) });
   await expect(again.getByLabel("Статус")).toHaveValue("in_progress");
   const cells = again.getByRole("cell");
-  await expect(cells.nth(4).getByLabel("Статус")).toHaveValue("in_progress");
-  await expect(cells.nth(4)).not.toContainText("Статус");
-  await expect(cells.nth(3).getByLabel("Статус")).toHaveCount(0);
+  await expect(cells.nth(5).getByLabel("Статус")).toHaveValue("in_progress");
+  await expect(cells.nth(5)).not.toContainText("Статус");
+  await expect(cells.nth(4).getByLabel("Статус")).toHaveCount(0);
 });
 
 test("подтверждение в своей колонке, без теста строка тоже подтверждается", async ({ page }) => {

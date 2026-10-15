@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { ActionForm } from "@/components/ActionForm";
-import { submitItemTestAction } from "@/app/idp-actions";
+import { ItemTestRun } from "@/components/ItemTestRun";
 import { getSessionEmployee } from "@/lib/auth";
 import { getIdpItem } from "@/lib/idp";
 import { getIdp, listItemAttemptState, listItemTestsForTake } from "@/lib/queries";
@@ -42,26 +41,7 @@ export default async function IdpItemTestPage({ params }: { params: Promise<{ id
         {attempt?.passed === false ? <p>не сдан</p> : null}
         {(attempt?.count ?? 0) > 0 ? <p className="muted text-sm">Попыток: {attempt?.count}</p> : null}
       </section>
-      {canTake ? (
-        <ActionForm action={submitItemTestAction} className="panel panel-pad space-y-3 text-sm">
-          <h2 className="section-title mb-0">Тест</h2>
-          <input type="hidden" name="itemId" value={item.id} />
-          {questions.map((question) => (
-            <fieldset key={question.id} className="space-y-2">
-              <p className="font-medium">{question.prompt}</p>
-              {question.options.map((option) => (
-                <label key={option.id} className="flex items-center gap-2">
-                  <input type="radio" name={`answer-${question.id}`} value={option.id} required />
-                  <span>{option.text}</span>
-                </label>
-              ))}
-            </fieldset>
-          ))}
-          <button className="btn-primary w-fit" type="submit">
-            Сдать тест
-          </button>
-        </ActionForm>
-      ) : null}
+      {canTake ? <ItemTestRun itemId={item.id} questions={questions} /> : null}
     </article>
   );
 }
