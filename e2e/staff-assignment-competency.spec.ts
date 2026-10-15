@@ -120,6 +120,26 @@ test("строка открытого ИПР остаётся на старой 
   }
 });
 
+test("то же название в другой компетенции без учёта регистра не переносится", async ({ page }) => {
+  await login(page);
+  await page.goto("/assignments/new");
+  const create = page.locator("form").filter({ has: page.getByRole("button", { name: "Создать" }) });
+  await create.getByLabel(/^Компетенция/).selectOption(firstId);
+  await create.getByLabel(/^Название/).fill(NAME.toLowerCase());
+  await create.getByLabel(/^Узнать/).fill("Как сделать");
+  await create.getByLabel(/^Проверить/).fill("Есть результат");
+  await create.getByRole("button", { name: "Создать" }).click();
+  await expect(page).toHaveURL(/\/assignments\/asg/);
+
+  await page.goto(cardPath);
+  const save = saveForm(page);
+  await save.getByLabel(/^Компетенция/).selectOption(firstId);
+  await save.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(save.getByRole("alert")).toHaveText("Такое задание уже есть в справочнике этой компетенции");
+  await page.reload();
+  await expect(page.getByLabel(/^Компетенция/)).toHaveValue(secondId);
+});
+
 test("скрытое задание не меняет компетенцию", async ({ page }) => {
   await login(page);
   await page.goto(cardPath);

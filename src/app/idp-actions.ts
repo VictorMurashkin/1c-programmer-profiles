@@ -476,6 +476,10 @@ export async function saveAssignmentAction(_prev: ActionResult, formData: FormDa
       revalidatePath(`/assignments/${created.id}`);
       return { href: `/assignments/${created.id}` };
     }
+    const clash = listActiveIdpAssignments(competencyId).find(
+      (row) => row.id !== idRaw && row.name.toLowerCase() === texts.name.toLowerCase(),
+    );
+    if (clash) throw new InvariantError("Такое задание уже есть в справочнике этой компетенции");
     db.update(idpAssignments)
       .set({
         competencyId,

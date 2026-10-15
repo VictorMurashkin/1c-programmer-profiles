@@ -17,7 +17,10 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
   const row = getIdpAssignment(assignmentId);
   if (!row) notFound();
   const competency = getCompetency(row.competencyId);
-  const competencies = assignmentCompetencies();
+  const listed = assignmentCompetencies();
+  const competencies = listed.some((item) => item.id === row.competencyId)
+    ? listed
+    : [{ id: row.competencyId, name: competency?.name ?? row.competencyId }, ...listed];
   const test = listAssignmentTest(row.id);
 
   return (
