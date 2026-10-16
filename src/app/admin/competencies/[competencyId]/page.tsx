@@ -9,7 +9,7 @@ import {
   saveCompetencyAction,
 } from "@/app/actions";
 import { isAdmin } from "@/lib/auth";
-import { getCompetency, listCompetencies, listCompetencyLinks } from "@/lib/queries";
+import { getCompetency, listCompetencies, listCompetencyLinks, listIdpAssignments } from "@/lib/queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +21,7 @@ export default async function CompetencyPage({ params }: { params: Promise<{ com
   if (!competency) notFound();
   const roots = listCompetencies().filter((item) => !item.parentId);
   const links = listCompetencyLinks().get(competency.id) ?? [];
+  const assignments = listIdpAssignments(competency.id);
   return (
     <div className="space-y-6">
       <p className="text-sm">
@@ -39,6 +40,23 @@ export default async function CompetencyPage({ params }: { params: Promise<{ com
           Сохранить
         </button>
       </ActionForm>
+      <section aria-label="Задания" className="space-y-3">
+        <h2 className="section-title">Задания</h2>
+        <ul className="panel">
+          {assignments.length === 0 ? (
+            <li className="list-row muted">Заданий ещё нет</li>
+          ) : (
+            assignments.map((row) => (
+              <li key={row.id} className="list-row">
+                <a href={`/assignments/${encodeURIComponent(row.id)}`} className="link-accent font-medium">
+                  {row.name}
+                </a>
+                {row.archived === 1 ? <span className="chip">скрыто</span> : null}
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
       <div role="group" aria-label={`Материалы: ${competency.name}`} className="panel panel-pad">
         <h2 className="section-title">Материалы</h2>
         <CompetencyLinks
