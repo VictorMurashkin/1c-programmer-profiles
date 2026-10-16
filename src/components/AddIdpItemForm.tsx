@@ -5,7 +5,7 @@ import { addIdpItemAction } from "@/app/idp-actions";
 import { ActionForm } from "@/components/ActionForm";
 
 type PoolRow = { competencyId: string; competencyName: string; requiredLevel: number | null };
-type CatalogRow = { id: string; name: string; competencyId: string; competencyName: string };
+type CatalogRow = { id: string; name: string; competencyId: string; competencyName: string; level: number | null };
 
 export function AddIdpItemForm({
   idpId,
@@ -21,7 +21,13 @@ export function AddIdpItemForm({
   catalog: CatalogRow[];
 }) {
   const [competencyId, setCompetencyId] = useState(pool[0]?.competencyId ?? "");
-  const visible = catalog.filter((row) => row.competencyId === competencyId);
+  const [level, setLevel] = useState("1");
+  const bar = pool.find((row) => row.competencyId === competencyId)?.requiredLevel ?? null;
+  const choices = [1, 2, 3].filter((item) => bar == null || item <= bar);
+  const levelValue = choices.some((item) => String(item) === level) ? level : String(choices[0] ?? "");
+  const visible = catalog.filter(
+    (row) => row.competencyId === competencyId && row.level != null && (bar == null || row.level <= bar),
+  );
 
   return (
     <ActionForm
@@ -66,7 +72,17 @@ export function AddIdpItemForm({
           ))}
         </select>
       </label>
-      <label className="lbl md:col-span-2">
+      <label className="lbl">
+        Уровень
+        <select className="field" name="level" value={levelValue} onChange={(event) => setLevel(event.target.value)}>
+          {choices.map((item) => (
+            <option key={item} value={String(item)}>
+              {item === 1 ? "1 · базовый" : item === 2 ? "2 · уверенный" : "3 · эксперт"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="lbl">
         Название (если новое)
         <input className="field" name="name" />
       </label>

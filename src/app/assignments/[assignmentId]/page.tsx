@@ -53,6 +53,15 @@ export default async function AssignmentPage({ params }: { params: Promise<{ ass
               ))}
             </select>
           </label>
+          <label className="lbl">
+            Уровень
+            <select name="level" className="field" defaultValue={row.level == null ? "" : String(row.level)}>
+              <option value="">не задан</option>
+              <option value="1">1 · базовый</option>
+              <option value="2">2 · уверенный</option>
+              <option value="3">3 · эксперт</option>
+            </select>
+          </label>
           <label className="lbl md:col-span-2">
             Название
             <input className="field" name="name" defaultValue={row.name} />

@@ -41,6 +41,15 @@ export default async function NewAssignmentPage() {
           </select>
         </label>
         <label className="lbl">
+          Уровень
+          <select name="level" className="field" defaultValue="1">
+            <option value="">не задан</option>
+            <option value="1">1 · базовый</option>
+            <option value="2">2 · уверенный</option>
+            <option value="3">3 · эксперт</option>
+          </select>
+        </label>
+        <label className="lbl">
           Название
           <input className="field" name="name" />
         </label>

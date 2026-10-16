@@ -216,10 +216,13 @@ export async function addIdpItemAction(_prev: ActionResult, formData: FormData, 
       const assignmentId = String(formData.get("assignmentId") ?? "").trim();
       const dueOn = parseOptionalDue(String(formData.get("dueOn") ?? ""), idp.periodStart, idp.periodEnd);
       const db = getDb();
+      const pool = poolRow(idp.id, competencyIdRaw);
+      assertAssignableCompetency(competencyIdRaw);
       let competencyId = competencyIdRaw;
       let assignmentName: string;
       let learnText: string;
       let verifyText: string;
+      let assignmentLevel: number;
       let catalogId: string | null = null;
       if (assignmentId) {
         const catalog = getIdpAssignment(assignmentId);
@@ -234,6 +237,7 @@ export async function addIdpItemAction(_prev: ActionResult, formData: FormData, 
         learnText = catalog.learnText;
         verifyText = catalog.verifyText;
         catalogId = catalog.id;
+        assignmentLevel = levelForPool(catalog.level, pool.requiredLevel, "Сначала задайте уровень на карточке задания");
       } else {
         const texts = readAssignmentTexts(formData);
         const existing = listActiveIdpAssignments(competencyId).find(
@@ -244,16 +248,17 @@ export async function addIdpItemAction(_prev: ActionResult, formData: FormData, 
           learnText = existing.learnText;
           verifyText = existing.verifyText;
           catalogId = existing.id;
+          assignmentLevel = levelForPool(existing.level, pool.requiredLevel, "Сначала задайте уровень на карточке задания");
         } else {
-          const created = insertCatalogAssignment(competencyId, texts);
+          const level = levelForPool(parseAssignmentLevel(formData), pool.requiredLevel, "Нужен уровень задания");
+          const created = insertCatalogAssignment(competencyId, texts, level);
           assignmentName = created.name;
           learnText = created.learnText;
           verifyText = created.verifyText;
           catalogId = created.id;
+          assignmentLevel = level;
         }
       }
-      const pool = poolRow(idp.id, competencyId);
-      assertAssignableCompetency(competencyId);
       getSqlite()
         .transaction(() => {
           const item = db
@@ -265,6 +270,7 @@ export async function addIdpItemAction(_prev: ActionResult, formData: FormData, 
               competencyName: pool.competencyName,
               requiredLevel: pool.requiredLevel,
               assignmentName,
+              assignmentLevel,
               learnText,
               verifyText,
               dueOn,
@@ -428,9 +434,26 @@ export async function unacceptIdpItemAction(_prev: ActionResult, formData: FormD
   }
 }
 
+function parseAssignmentLevel(formData: FormData): number | null {
+  const raw = String(formData.get("level") ?? "").trim();
+  if (!raw) return null;
+  const level = Number(raw);
+  if (level !== 1 && level !== 2 && level !== 3) throw new InvariantError("Уровень задания — 1, 2 или 3");
+  return level;
+}
+
+function levelForPool(level: number | null, requiredLevel: number | null, emptyMessage: string) {
+  if (level == null) throw new InvariantError(emptyMessage);
+  if (requiredLevel != null && level > requiredLevel) {
+    throw new InvariantError("Задание выше планки этой компетенции");
+  }
+  return level;
+}
+
 function insertCatalogAssignment(
   competencyId: string,
   texts: { name: string; learnText: string; verifyText: string },
+  level: number | null,
 ) {
   assertAssignableCompetency(competencyId);
   const clash = listActiveIdpAssignments(competencyId).find(
@@ -446,11 +469,12 @@ function insertCatalogAssignment(
       name: texts.name,
       learnText: texts.learnText,
       verifyText: texts.verifyText,
+      level,
       archived: 0,
       updatedAt: now(),
     })
     .run();
-  return { id, ...texts };
+  return { id, ...texts, level };
 }
 
 export async function saveAssignmentAction(_prev: ActionResult, formData: FormData, retried = false): Promise<ActionResult> {
@@ -468,10 +492,11 @@ export async function saveAssignmentAction(_prev: ActionResult, formData: FormDa
       if (!existing) throw new InvariantError("Задание не найдено");
       if (existing.archived !== 0) throw new InvariantError("Скрытое задание сначала верните в справочник");
     }
+    const level = parseAssignmentLevel(formData);
     const texts = readAssignmentTexts(formData);
     assertAssignableCompetency(competencyId);
     if (!idRaw) {
-      const created = insertCatalogAssignment(competencyId, texts);
+      const created = insertCatalogAssignment(competencyId, texts, level);
       revalidatePath("/assignments");
       revalidatePath(`/assignments/${created.id}`);
       return { href: `/assignments/${created.id}` };
@@ -486,6 +511,7 @@ export async function saveAssignmentAction(_prev: ActionResult, formData: FormDa
         name: texts.name,
         learnText: texts.learnText,
         verifyText: texts.verifyText,
+        level,
         updatedAt: t,
       })
       .where(eq(idpAssignments.id, idRaw))
