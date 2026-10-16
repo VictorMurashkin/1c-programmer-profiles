@@ -21,6 +21,7 @@ export default async function AssignmentsPage({
     name: row.name,
     competencyId: row.competencyId,
     competencyName: names.get(row.competencyId) ?? row.competencyId,
+    level: row.level,
     archived: row.archived === 1,
   }));
   const competencies = [...new Map(items.map((item) => [item.competencyId, item.competencyName])).entries()]
@@ -70,7 +71,10 @@ export default async function AssignmentsPage({
                   <a href={`/assignments/${encodeURIComponent(row.id)}`} className="link-accent font-medium">
                     {row.name}
                   </a>
-                  <div className="mt-1 text-xs muted">{row.competencyName}</div>
+                  <div className="mt-1 text-xs muted">
+                    {row.competencyName}
+                    {row.level != null ? ` · ур. ${row.level}` : ""}
+                  </div>
                 </div>
                 {row.archived ? <span className="chip">скрыто</span> : null}
               </li>

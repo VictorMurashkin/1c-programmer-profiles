@@ -93,7 +93,10 @@ test("после сохранения карточка показывает но
   await page.goto(idpPath);
   const add = addForm(page);
   await add.getByLabel(/^Компетенция/).selectOption(firstId);
-  await add.getByLabel(/^Из справочника/).selectOption({ label: NAME });
+  const catalog = add.getByLabel(/^Из справочника/);
+  await catalog.selectOption({
+    value: (await catalog.locator("option", { hasText: NAME }).getAttribute("value")) ?? "",
+  });
   await add.getByRole("button", { name: "Добавить" }).click();
   const oldGroup = page.getByRole("heading", { level: 3, name: new RegExp(firstName) }).locator("xpath=..");
   await expect(oldGroup.getByRole("row", { name: new RegExp(NAME) })).toBeVisible();

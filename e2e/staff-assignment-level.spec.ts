@@ -90,8 +90,8 @@ test("в списке планки 2 есть уровни 1 и 2 и нет 3", 
   const again = addForm(page);
   await again.getByLabel(/^Компетенция/).selectOption(competencyId);
   const catalog = again.getByLabel(/^Из справочника/);
-  await expect(catalog.locator("option", { hasText: LOW })).toHaveCount(1);
-  await expect(catalog.locator("option", { hasText: MID })).toHaveCount(1);
+  await expect(catalog.locator("option", { hasText: LOW })).toHaveText(`${LOW} · ур. 1`);
+  await expect(catalog.locator("option", { hasText: MID })).toHaveText(`${MID} · ур. 2`);
   await expect(catalog.locator("option", { hasText: HIGH })).toHaveCount(0);
   await expect(again.getByLabel(/^Уровень/).locator("option")).toHaveText(["1 · базовый", "2 · уверенный"]);
 });

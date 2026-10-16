@@ -68,6 +68,7 @@ export function AddIdpItemForm({
           {visible.map((row) => (
             <option key={row.id} value={row.id}>
               {row.name}
+              {row.level != null ? ` · ур. ${row.level}` : ""}
             </option>
           ))}
         </select>
