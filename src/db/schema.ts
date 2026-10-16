@@ -107,6 +107,7 @@ export const idpAssignments = sqliteTable("idp_assignments", {
   name: text("name").notNull(),
   learnText: text("learn_text").notNull(),
   verifyText: text("verify_text").notNull(),
+  level: integer("level"),
   archived: integer("archived").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
@@ -153,6 +154,7 @@ export const idpItems = sqliteTable("idp_items", {
   competencyName: text("competency_name").notNull(),
   requiredLevel: integer("required_level"),
   assignmentName: text("assignment_name").notNull(),
+  assignmentLevel: integer("assignment_level"),
   learnText: text("learn_text").notNull(),
   verifyText: text("verify_text").notNull(),
   dueOn: text("due_on"),

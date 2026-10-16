@@ -59,6 +59,7 @@ test("создание открывает карточку, и ссылка ес
   cardPath = page.url();
   await page.getByRole("link", { name: "← Все задания" }).click();
   await expect(page.getByRole("link", { name: NAME, exact: true })).toBeVisible();
+  await expect(page.locator("li", { has: page.getByRole("link", { name: NAME, exact: true }) })).toContainText("ур. 1");
 
   await page.getByRole("link", { name: "Новое задание" }).click();
   const second = page.locator("form").filter({ has: page.getByRole("button", { name: "Создать" }) });

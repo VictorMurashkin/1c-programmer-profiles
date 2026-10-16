@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS idp_assignments (
   name TEXT NOT NULL,
   learn_text TEXT NOT NULL,
   verify_text TEXT NOT NULL,
+  level INTEGER,
   archived INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -98,6 +99,7 @@ CREATE TABLE IF NOT EXISTS idp_items (
   competency_name TEXT NOT NULL,
   required_level INTEGER,
   assignment_name TEXT NOT NULL,
+  assignment_level INTEGER,
   learn_text TEXT NOT NULL,
   verify_text TEXT NOT NULL,
   due_on TEXT,
@@ -371,6 +373,7 @@ function ensureAssignmentTables() {
       name TEXT NOT NULL,
       learn_text TEXT NOT NULL,
       verify_text TEXT NOT NULL,
+      level INTEGER,
       archived INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -408,6 +411,7 @@ function rebuildIdpItems() {
       competency_name TEXT NOT NULL,
       required_level INTEGER,
       assignment_name TEXT NOT NULL,
+      assignment_level INTEGER,
       learn_text TEXT NOT NULL,
       verify_text TEXT NOT NULL,
       due_on TEXT,
@@ -430,5 +434,7 @@ export function migrate() {
   ensureIdpPeriodColumns();
   ensureAssignmentTables();
   rebuildIdpItems();
+  addColumnIfMissing("idp_assignments", "level", "level INTEGER");
+  addColumnIfMissing("idp_items", "assignment_level", "assignment_level INTEGER");
   retargetMergedCompetencies();
 }

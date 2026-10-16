@@ -178,6 +178,7 @@ export function IdpBlock({
                       <IdpItemEdit
                         itemId={item.id}
                         name={item.assignmentName}
+                        assignmentLevel={item.assignmentLevel}
                         learnText={item.learnText}
                         verifyText={item.verifyText}
                         dueOn={item.dueOn}

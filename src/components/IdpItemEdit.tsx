@@ -7,6 +7,7 @@ import { ActionForm } from "@/components/ActionForm";
 export function IdpItemEdit({
   itemId,
   name,
+  assignmentLevel,
   learnText,
   verifyText,
   dueOn,
@@ -18,6 +19,7 @@ export function IdpItemEdit({
 }: {
   itemId: number;
   name: string;
+  assignmentLevel: number | null;
   learnText: string;
   verifyText: string;
   dueOn: string | null;
@@ -42,7 +44,10 @@ export function IdpItemEdit({
         {open ? (
           <input className="field" name="name" form={formId} aria-label="Название" defaultValue={name} />
         ) : (
-          <div className="font-medium">{name}</div>
+          <div className="font-medium">
+            <span>{name}</span>
+            {assignmentLevel != null ? <span className="muted font-normal"> · ур. {assignmentLevel}</span> : null}
+          </div>
         )}
       </td>
       <td>
