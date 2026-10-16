@@ -22,9 +22,15 @@ const IDP_STATUS: Record<string, string> = {
   cancelled: "отменён",
 };
 
-export default async function IdpsPage() {
+export default async function IdpsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ employee?: string | string[] }>;
+}) {
   const actor = await getSessionEmployee();
   if (!actor) redirect("/login");
+  const { employee = "" } = await searchParams;
+  const requested = (Array.isArray(employee) ? employee[0] : employee).trim();
   const plans = listIdpsVisibleTo(actor);
   const people = listEmployeesVisibleTo(actor);
   const targets = jobsWithProfiles().map((job) => ({ id: job.id, name: job.name }));
@@ -39,6 +45,13 @@ export default async function IdpsPage() {
     if (row.acceptedAt != null) current.accepted += 1;
     counts.set(row.idpId, current);
   }
+  const owners = [
+    ...new Map(plans.map((idp) => [idp.employeeId, employeesById.get(idp.employeeId)?.name ?? idp.employeeId])).entries(),
+  ]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  const known = owners.some((row) => row.id === requested);
+  const shown = requested === "" ? plans : known ? plans.filter((idp) => idp.employeeId === requested) : [];
 
   return (
     <div className="space-y-8">
@@ -82,8 +95,26 @@ export default async function IdpsPage() {
           </button>
         </ActionForm>
       ) : null}
+      {plans.length > 0 ? (
+        <form action="/idps" className="flex flex-wrap items-end gap-3">
+          <label className="lbl">
+            Сотрудник
+            <select className="field" name="employee" aria-label="Фильтр сотрудника" defaultValue={known ? requested : ""}>
+              <option value="">все</option>
+              {owners.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="btn" type="submit">
+            Показать
+          </button>
+        </form>
+      ) : null}
       <ul className="panel">
-        {plans.map((idp) => {
+        {shown.map((idp) => {
           const owner = employeesById.get(idp.employeeId);
           const creator = employeesById.get(idp.createdById);
           const source = jobsById.get(idp.sourceJobId);
@@ -106,7 +137,9 @@ export default async function IdpsPage() {
             </li>
           );
         })}
-        {plans.length === 0 ? <li className="list-row muted">ИПР ещё нет</li> : null}
+        {shown.length === 0 ? (
+          <li className="list-row muted">{plans.length === 0 ? "ИПР ещё нет" : "Ничего не найдено."}</li>
+        ) : null}
       </ul>
     </div>
   );
