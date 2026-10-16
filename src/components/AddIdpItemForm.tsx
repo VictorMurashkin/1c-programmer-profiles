@@ -21,6 +21,7 @@ export function AddIdpItemForm({
   catalog: CatalogRow[];
 }) {
   const [competencyId, setCompetencyId] = useState(pool[0]?.competencyId ?? "");
+  const [fromCatalog, setFromCatalog] = useState(false);
   const [level, setLevel] = useState("1");
   const bar = pool.find((row) => row.competencyId === competencyId)?.requiredLevel ?? null;
   const choices = [1, 2, 3].filter((item) => bar == null || item <= bar);
@@ -51,7 +52,10 @@ export function AddIdpItemForm({
           name="competencyId"
           required
           value={competencyId}
-          onChange={(event) => setCompetencyId(event.target.value)}
+          onChange={(event) => {
+            setCompetencyId(event.target.value);
+            setFromCatalog(false);
+          }}
         >
           {pool.map((row) => (
             <option key={row.competencyId} value={row.competencyId}>
@@ -63,7 +67,13 @@ export function AddIdpItemForm({
       </label>
       <label className="lbl">
         Из справочника
-        <select key={competencyId} className="field" name="assignmentId" defaultValue="">
+        <select
+          key={competencyId}
+          className="field"
+          name="assignmentId"
+          defaultValue=""
+          onChange={(event) => setFromCatalog(event.target.value !== "")}
+        >
           <option value="">новое задание</option>
           {visible.map((row) => (
             <option key={row.id} value={row.id}>
@@ -73,16 +83,18 @@ export function AddIdpItemForm({
           ))}
         </select>
       </label>
-      <label className="lbl">
-        Уровень
-        <select className="field" name="level" value={levelValue} onChange={(event) => setLevel(event.target.value)}>
-          {choices.map((item) => (
-            <option key={item} value={String(item)}>
-              {item === 1 ? "1 · базовый" : item === 2 ? "2 · уверенный" : "3 · эксперт"}
-            </option>
-          ))}
-        </select>
-      </label>
+      {fromCatalog ? null : (
+        <label className="lbl">
+          Уровень
+          <select className="field" name="level" value={levelValue} onChange={(event) => setLevel(event.target.value)}>
+            {choices.map((item) => (
+              <option key={item} value={String(item)}>
+                {item === 1 ? "1 · базовый" : item === 2 ? "2 · уверенный" : "3 · эксперт"}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label className="lbl">
         Название (если новое)
         <input className="field" name="name" />

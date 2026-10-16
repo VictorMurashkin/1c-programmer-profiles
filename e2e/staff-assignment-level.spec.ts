@@ -121,6 +121,7 @@ test("строка хранит уровень, который был при д�
   await catalog.selectOption({
     value: (await catalog.locator("option", { hasText: MID }).getAttribute("value")) ?? "",
   });
+  await expect(add.getByLabel(/^Уровень/)).toHaveCount(0);
   await add.getByRole("button", { name: "Добавить" }).click();
   const row = page.getByRole("row", { name: new RegExp(MID) });
   await expect(row).toContainText("ур. 2");
