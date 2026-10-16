@@ -25,12 +25,12 @@ const IDP_STATUS: Record<string, string> = {
 export default async function IdpsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ employee?: string }>;
+  searchParams: Promise<{ employee?: string | string[] }>;
 }) {
   const actor = await getSessionEmployee();
   if (!actor) redirect("/login");
   const { employee = "" } = await searchParams;
-  const requested = employee.trim();
+  const requested = (Array.isArray(employee) ? employee[0] : employee).trim();
   const plans = listIdpsVisibleTo(actor);
   const people = listEmployeesVisibleTo(actor);
   const targets = jobsWithProfiles().map((job) => ({ id: job.id, name: job.name }));

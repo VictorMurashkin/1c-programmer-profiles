@@ -64,7 +64,7 @@ async function createPlan(page: Page, name: string) {
   await page.getByLabel("Начало").fill("2026-03-01");
   await page.getByLabel("Конец").fill("2026-09-30");
   await page.getByRole("button", { name: "Создать" }).click();
-  await expect(page.locator("ul.panel li", { hasText: name })).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: name })).toBeVisible();
 }
 
 function filter(page: Page) {
@@ -72,7 +72,7 @@ function filter(page: Page) {
 }
 
 function rows(page: Page) {
-  return page.locator("ul.panel li");
+  return page.getByRole("listitem");
 }
 
 test("выбор сотрудника оставляет только его планы", async ({ page }) => {
@@ -124,4 +124,8 @@ test("сотрудник без подчинённых чужие планы н�
   await expect(page.getByText(SECOND.name)).toHaveCount(0);
   await expect(rows(page).filter({ hasText: FIRST.name })).toHaveCount(0);
   await expect(page.getByText("Ничего не найдено.")).toBeVisible();
+
+  await page.goto(`/idps?employee=${secondId}&employee=${firstId}`);
+  await expect(page.getByRole("heading", { name: "ИПР" })).toBeVisible();
+  await expect(page.getByText(SECOND.name)).toHaveCount(0);
 });
