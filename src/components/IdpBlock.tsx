@@ -135,7 +135,7 @@ export function IdpBlock({
             <ActionForm action={refreshIdpPoolAction}>
               <input type="hidden" name="idpId" value={idp.id} />
               <button className="btn" type="submit">
-                Обновить разрыв
+                Обновить доступные компетенции
               </button>
             </ActionForm>
             <ActionForm action={cancelIdpAction}>
@@ -255,7 +255,7 @@ export function IdpBlock({
           />
         ) : null}
         {manage && pool.length === 0 ? (
-          <p className="muted text-sm">В пуле нет компетенций. Нажмите «Обновить разрыв».</p>
+          <p className="muted text-sm">В пуле нет компетенций. Нажмите «Обновить доступные компетенции».</p>
         ) : null}
       </div>
     </section>

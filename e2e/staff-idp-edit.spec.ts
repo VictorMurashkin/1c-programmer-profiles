@@ -222,7 +222,7 @@ test("подтверждение в своей колонке, без теста
   await page.goto(idpPath);
   const row = page.getByRole("row", { name: new RegExp(GOAL) });
   const confirm = row.getByRole("button", { name: "Подтвердить" });
-  const neighbor = page.getByRole("button", { name: "Обновить разрыв" });
+  const neighbor = page.getByRole("button", { name: "Обновить доступные компетенции" });
   const confirmBox = await confirm.evaluate((node) => {
     const style = getComputedStyle(node);
     return { border: style.borderTopWidth, pad: style.paddingTop, color: style.color };
