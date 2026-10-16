@@ -11,7 +11,7 @@ export function AssignmentImportForm() {
       <h2 className="section-title mb-0">Загрузка</h2>
       <p className="muted">
         Колонки: {ASSIGNMENT_IMPORT_COLUMNS.join(", ")}. Строка — один вариант ответа. Признак «верный»: да или нет.
-        Файл не задаёт уровень задания.
+        Колонка «Уровень» необязательна: 1, 2 или 3. Пустая ячейка уже заданный уровень не меняет.
       </p>
       <label className="lbl">
         Файл Excel

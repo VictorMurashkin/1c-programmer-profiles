@@ -13,6 +13,10 @@ export type ParsedAssignment = {
   name: string;
   learnText: string;
   verifyText: string;
+  /** Колонки «Уровень» в файле не было. */
+  levelProvided: boolean;
+  /** Пустая ячейка — уровень не задавать. 1, 2 или 3 — записать. */
+  level: number | null;
   questions: { prompt: string; options: { text: string; correct: boolean }[] }[];
 };
 
@@ -25,23 +29,33 @@ type SheetRow = {
   prompt: string;
   option: string;
   correct: string;
+  levelProvided: boolean;
+  level: number | null;
 };
 
 /** Разбор первой страницы. При ошибках действие не пишет, но список нужен, чтобы добавить ошибки справочника. */
 export function parseAssignmentSheet(grid: string[][]): { errors: string[]; assignments: ParsedAssignment[] } {
   const header = grid[0] ?? [];
   const headerOk = ASSIGNMENT_IMPORT_COLUMNS.every((name, index) => (header[index] ?? "").trim() === name);
-  if (!headerOk) {
+  const levelProvided = (header[7] ?? "").trim() === "Уровень";
+  const stray = (header[7] ?? "").trim();
+  if (!headerOk || (stray !== "" && !levelProvided)) {
     return {
-      errors: [`В первой строке нужны колонки: ${ASSIGNMENT_IMPORT_COLUMNS.join(", ")}`],
+      errors: [`В первой строке нужны колонки: ${ASSIGNMENT_IMPORT_COLUMNS.join(", ")}. Необязательная восьмая — Уровень.`],
       assignments: [],
     };
   }
 
+  const errors: string[] = [];
   const rows: SheetRow[] = [];
   for (let index = 1; index < grid.length; index += 1) {
     const cells = ASSIGNMENT_IMPORT_COLUMNS.map((_, column) => (grid[index]?.[column] ?? "").trim());
-    if (cells.every((cell) => cell === "")) continue;
+    const levelCell = levelProvided ? (grid[index]?.[7] ?? "").trim() : "";
+    if (cells.every((cell) => cell === "") && levelCell === "") continue;
+    const level = levelCell === "" ? null : levelNumber(levelCell);
+    if (levelProvided && levelCell !== "" && level == null) {
+      errors.push(`Строка ${index + 1}: уровень — 1, 2, 3 или пусто`);
+    }
     rows.push({
       row: index + 1,
       competencyId: cells[0] ?? "",
@@ -51,11 +65,12 @@ export function parseAssignmentSheet(grid: string[][]): { errors: string[]; assi
       prompt: cells[4] ?? "",
       option: cells[5] ?? "",
       correct: cells[6] ?? "",
+      levelProvided,
+      level,
     });
   }
   if (rows.length === 0) return { errors: ["В файле нет строк"], assignments: [] };
 
-  const errors: string[] = [];
   const groups = new Map<
     string,
     {
@@ -63,6 +78,8 @@ export function parseAssignmentSheet(grid: string[][]): { errors: string[]; assi
       name: string;
       learnText: string;
       verifyText: string;
+      levelProvided: boolean;
+      level: number | null;
       questions: Map<string, { prompt: string; options: { text: string; correct: boolean }[] }>;
     }
   >();
@@ -90,6 +107,8 @@ export function parseAssignmentSheet(grid: string[][]): { errors: string[]; assi
         name: row.name,
         learnText: row.learnText,
         verifyText: row.verifyText,
+        levelProvided: row.levelProvided,
+        level: row.level,
         questions: new Map(),
       });
     } else {
@@ -98,6 +117,9 @@ export function parseAssignmentSheet(grid: string[][]): { errors: string[]; assi
       }
       if (row.verifyText && row.verifyText !== existing.verifyText) {
         errors.push(`Строка ${row.row}: у задания «${existing.name}» другой текст «проверить»`);
+      }
+      if (row.levelProvided && row.level !== existing.level) {
+        errors.push(`Строка ${row.row}: у задания «${existing.name}» другой уровень`);
       }
     }
     const group = groups.get(key);
@@ -126,10 +148,38 @@ export function parseAssignmentSheet(grid: string[][]): { errors: string[]; assi
       name: group.name,
       learnText: group.learnText,
       verifyText: group.verifyText,
+      levelProvided: group.levelProvided,
+      level: group.level,
       questions,
     });
   }
   return { errors, assignments };
+}
+
+/** Строки первой страницы: заголовок и по одной строке на вариант. Пустой тест — одна строка без вопроса. */
+export function assignmentSheetRows(assignments: ParsedAssignment[]): string[][] {
+  const withLevel = assignments.some((item) => item.levelProvided);
+  const header = withLevel ? [...ASSIGNMENT_IMPORT_COLUMNS, "Уровень"] : [...ASSIGNMENT_IMPORT_COLUMNS];
+  const rows: string[][] = [header];
+  for (const assignment of assignments) {
+    const head = [assignment.competencyId, assignment.name, assignment.learnText, assignment.verifyText];
+    const tail = withLevel ? [assignment.level == null ? "" : String(assignment.level)] : [];
+    if (assignment.questions.length === 0) {
+      rows.push([...head, "", "", "", ...tail]);
+      continue;
+    }
+    for (const question of assignment.questions) {
+      for (const option of question.options) {
+        rows.push([...head, question.prompt, option.text, option.correct ? "да" : "нет", ...tail]);
+      }
+    }
+  }
+  return rows;
+}
+
+function levelNumber(value: string): number | null {
+  if (value === "1" || value === "2" || value === "3") return Number(value);
+  return null;
 }
 
 function correctFlag(value: string): boolean | null {

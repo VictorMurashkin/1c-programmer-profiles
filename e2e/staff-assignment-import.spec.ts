@@ -280,3 +280,55 @@ test("скрытое задание файл не меняет и называе
   await page.goto("/assignments");
   await expect(page.getByRole("link", { name: STAY, exact: true })).toHaveCount(1);
 });
+
+test("колонка уровня записывает 1–3, пустая ячейка уровень не сбрасывает", async ({ page }) => {
+  const leveled = `С уровнем ${STAMP}`;
+  const header = [...ASSIGNMENT_IMPORT_COLUMNS, "Уровень"];
+  function leveledFile(level: string) {
+    return writeXlsxSheet([
+      header,
+      [CMP, leveled, L1, V1, "Вопрос уровня", "Да", "да", level],
+      [CMP, leveled, L1, V1, "Вопрос уровня", "Нет", "нет", level],
+    ]);
+  }
+  async function send(buffer: Buffer) {
+    await page.goto("/assignments");
+    await uploadForm(page).getByLabel("Файл Excel").setInputFiles({
+      name: "assignments.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer,
+    });
+    const done = page.waitForResponse(
+      (response) => response.request().method() === "POST" && response.url().includes("/assignments"),
+    );
+    await uploadForm(page).getByRole("button", { name: "Загрузить" }).click();
+    await done;
+  }
+
+  await login(page);
+  await send(leveledFile("2"));
+  await expect(uploadForm(page).getByRole("status")).toContainText("Загружено заданий: 1.");
+  await page.getByRole("link", { name: leveled, exact: true }).click();
+  const card = new URL(page.url()).pathname;
+  await expect(page.getByLabel(/^Уровень/)).toHaveValue("2");
+
+  await send(leveledFile(""));
+  await page.goto(card);
+  await expect(page.getByLabel(/^Уровень/)).toHaveValue("2");
+
+  await send(leveledFile("3"));
+  await page.goto(card);
+  await expect(page.getByLabel(/^Уровень/)).toHaveValue("3");
+
+  const bad = `Плохой уровень ${STAMP}`;
+  await send(
+    writeXlsxSheet([
+      header,
+      [CMP, bad, L1, V1, "", "", "", "4"],
+    ]),
+  );
+  await expect(uploadForm(page).getByRole("alert")).toContainText("уровень");
+  await expect(page.getByRole("link", { name: bad, exact: true })).toHaveCount(0);
+  await page.goto(card);
+  await expect(page.getByLabel(/^Уровень/)).toHaveValue("3");
+});

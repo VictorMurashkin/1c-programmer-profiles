@@ -676,6 +676,10 @@ export async function importAssignmentsAction(
         errors.push("Задание только к компетенции, не к обязанности");
         continue;
       }
+      if (item.levelProvided && item.level != null && (item.level < 1 || item.level > 3)) {
+        errors.push(`У задания «${item.name}» уровень — 1, 2 или 3`);
+        continue;
+      }
       const same = catalog.filter(
         (row) => row.competencyId === item.competencyId && row.name.toLowerCase() === item.name.toLowerCase(),
       );
@@ -717,7 +721,7 @@ export async function importAssignmentsAction(
                 name: step.item.name,
                 learnText: step.item.learnText,
                 verifyText: step.item.verifyText,
-                level: null,
+                level: step.item.levelProvided ? step.item.level : null,
                 archived: 0,
                 updatedAt: t,
               })
@@ -727,7 +731,12 @@ export async function importAssignmentsAction(
             continue;
           }
           db.update(idpAssignments)
-            .set({ learnText: step.item.learnText, verifyText: step.item.verifyText, updatedAt: t })
+            .set({
+              learnText: step.item.learnText,
+              verifyText: step.item.verifyText,
+              ...(step.item.levelProvided && step.item.level != null ? { level: step.item.level } : {}),
+              updatedAt: t,
+            })
             .where(eq(idpAssignments.id, step.id))
             .run();
           replaceAssignmentTest(step.id, step.item.questions);
