@@ -177,6 +177,90 @@ export function assignmentSheetRows(assignments: ParsedAssignment[]): string[][]
   return rows;
 }
 
+/** Тот же состав, что у книги: массив или объект с полем `assignments`. `correct` — boolean. */
+export function parseAssignmentJson(text: string): { errors: string[]; assignments: ParsedAssignment[] } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text.replace(/^\uFEFF/, "")) as unknown;
+  } catch {
+    return { errors: ["Не разобрать JSON"], assignments: [] };
+  }
+  const list = Array.isArray(raw) ? raw : isRecord(raw) && Array.isArray(raw.assignments) ? raw.assignments : null;
+  if (!list) return { errors: ["Нужен JSON-массив или объект с полем assignments"], assignments: [] };
+  if (list.length === 0) return { errors: ["В файле нет заданий"], assignments: [] };
+  const errors: string[] = [];
+  const assignments: ParsedAssignment[] = [];
+  list.forEach((item, index) => {
+    const parsed = readJsonAssignment(item, index, errors);
+    if (parsed) assignments.push(parsed);
+  });
+  if (errors.length > 0) return { errors, assignments: [] };
+  return parseAssignmentSheet(assignmentSheetRows(assignments));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function jsonText(value: unknown, label: string, errors: string[]): string | null {
+  if (typeof value !== "string" || value.trim() === "") {
+    errors.push(label);
+    return null;
+  }
+  return value.trim();
+}
+
+function readJsonAssignment(value: unknown, index: number, errors: string[]): ParsedAssignment | null {
+  if (!isRecord(value)) {
+    errors.push(`Задание ${index + 1}: нужен объект`);
+    return null;
+  }
+  const competencyId = jsonText(value.competencyId, `Задание ${index + 1}: нужен competencyId`, errors);
+  const name = jsonText(value.name, `Задание ${index + 1}: нужно название`, errors);
+  const learnText = jsonText(value.learnText, `Задание ${index + 1}: нужен текст «узнать»`, errors);
+  const verifyText = jsonText(value.verifyText, `Задание ${index + 1}: нужен текст «проверить»`, errors);
+  const questionsRaw = value.questions ?? [];
+  if (!Array.isArray(questionsRaw)) {
+    errors.push(`Задание ${index + 1}: questions — массив`);
+    return null;
+  }
+  const questions: ParsedAssignment["questions"] = [];
+  for (let questionIndex = 0; questionIndex < questionsRaw.length; questionIndex += 1) {
+    const question = questionsRaw[questionIndex];
+    if (!isRecord(question)) {
+      errors.push(`Задание ${index + 1}, вопрос ${questionIndex + 1}: нужен объект`);
+      continue;
+    }
+    const prompt = jsonText(question.prompt, `Задание ${index + 1}, вопрос ${questionIndex + 1}: нужен текст`, errors);
+    if (!Array.isArray(question.options)) {
+      errors.push(`Задание ${index + 1}, вопрос ${questionIndex + 1}: options — массив`);
+      continue;
+    }
+    const options: { text: string; correct: boolean }[] = [];
+    for (let optionIndex = 0; optionIndex < question.options.length; optionIndex += 1) {
+      const option = question.options[optionIndex];
+      if (!isRecord(option)) {
+        errors.push(`Вопрос «${prompt ?? questionIndex + 1}», вариант ${optionIndex + 1}: нужен объект`);
+        continue;
+      }
+      if (typeof option.correct !== "boolean") {
+        errors.push(`Вопрос «${prompt ?? questionIndex + 1}»: у варианта correct — true или false`);
+      }
+      const text = jsonText(option.text, `Вопрос «${prompt ?? questionIndex + 1}», вариант ${optionIndex + 1}: нужен текст`, errors);
+      if (text && typeof option.correct === "boolean") options.push({ text, correct: option.correct });
+    }
+    if (prompt) questions.push({ prompt, options });
+  }
+  const levelProvided = Object.prototype.hasOwnProperty.call(value, "level");
+  let level: number | null = null;
+  if (levelProvided && value.level != null && value.level !== "") {
+    if (value.level === 1 || value.level === 2 || value.level === 3) level = value.level;
+    else errors.push(`Задание ${index + 1}: уровень — 1, 2, 3 или null`);
+  }
+  if (!competencyId || !name || !learnText || !verifyText || errors.length > 0) return null;
+  return { competencyId, name, learnText, verifyText, levelProvided, level, questions };
+}
+
 function levelNumber(value: string): number | null {
   if (value === "1" || value === "2" || value === "3") return Number(value);
   return null;

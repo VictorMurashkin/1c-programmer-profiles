@@ -82,7 +82,7 @@ function uploadForm(page: Page) {
 
 async function upload(page: Page, rows: string[][]) {
   await page.goto("/assignments");
-  await uploadForm(page).getByLabel("Файл Excel").setInputFiles({
+  await uploadForm(page).getByLabel("Файл", { exact: true }).setInputFiles({
     name: "assignments.xlsx",
     mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     buffer: sheet(rows),
@@ -293,7 +293,7 @@ test("колонка уровня записывает 1–3, пустая яч�
   }
   async function send(buffer: Buffer) {
     await page.goto("/assignments");
-    await uploadForm(page).getByLabel("Файл Excel").setInputFiles({
+    await uploadForm(page).getByLabel("Файл", { exact: true }).setInputFiles({
       name: "assignments.xlsx",
       mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       buffer,
@@ -331,4 +331,59 @@ test("колонка уровня записывает 1–3, пустая яч�
   await expect(page.getByRole("link", { name: bad, exact: true })).toHaveCount(0);
   await page.goto(card);
   await expect(page.getByLabel(/^Уровень/)).toHaveValue("3");
+});
+
+test("json создаёт задание с уровнем, битый json ничего не пишет", async ({ page }) => {
+  const fromJson = `Из json ${STAMP}`;
+  await login(page);
+  await page.goto("/assignments");
+  await uploadForm(page).getByLabel("Файл", { exact: true }).setInputFiles({
+    name: "assignments.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        assignments: [
+          {
+            competencyId: CMP,
+            name: fromJson,
+            learnText: L1,
+            verifyText: V1,
+            level: 2,
+            questions: [
+              {
+                prompt: "Вопрос json",
+                options: [
+                  { text: "Да", correct: true },
+                  { text: "Нет", correct: false },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ),
+  });
+  const done = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("/assignments"),
+  );
+  await uploadForm(page).getByRole("button", { name: "Загрузить" }).click();
+  await done;
+  await expect(uploadForm(page).getByRole("status")).toContainText("Загружено заданий: 1.");
+  await page.getByRole("link", { name: fromJson, exact: true }).click();
+  await expect(page.getByLabel(/^Уровень/)).toHaveValue("2");
+  await expect(page.getByLabel("Вопрос")).toHaveValue("Вопрос json");
+
+  await page.goto("/assignments");
+  await uploadForm(page).getByLabel("Файл", { exact: true }).setInputFiles({
+    name: "broken.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{"),
+  });
+  const failed = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("/assignments"),
+  );
+  await uploadForm(page).getByRole("button", { name: "Загрузить" }).click();
+  await failed;
+  await expect(uploadForm(page).getByRole("alert")).toContainText("Не разобрать JSON");
+  await expect(page.getByRole("link", { name: fromJson, exact: true })).toBeVisible();
 });

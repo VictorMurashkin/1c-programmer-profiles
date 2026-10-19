@@ -10,12 +10,19 @@ export function AssignmentImportForm() {
     <form action={action} className="panel panel-pad space-y-3 text-sm" aria-label="Загрузка">
       <h2 className="section-title mb-0">Загрузка</h2>
       <p className="muted">
-        Колонки: {ASSIGNMENT_IMPORT_COLUMNS.join(", ")}. Строка — один вариант ответа. Признак «верный»: да или нет.
-        Колонка «Уровень» необязательна: 1, 2 или 3. Пустая ячейка уже заданный уровень не меняет.
+        Excel или JSON того же состава. Колонки Excel: {ASSIGNMENT_IMPORT_COLUMNS.join(", ")}. Строка — один вариант
+        ответа. Признак «верный»: да или нет. Колонка «Уровень» необязательна: 1, 2 или 3. Пустая ячейка уже заданный
+        уровень не меняет.
       </p>
       <label className="lbl">
-        Файл Excel
-        <input className="field" type="file" name="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+        Файл
+        <input
+          className="field"
+          type="file"
+          name="file"
+          accept=".xlsx,.json,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          required
+        />
       </label>
       <button className="btn-primary w-fit" type="submit">
         Загрузить

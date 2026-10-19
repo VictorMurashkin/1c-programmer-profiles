@@ -44,7 +44,7 @@ import {
   listIdpPool,
 } from "@/lib/queries";
 import type { ActionResult } from "@/lib/action-result";
-import { parseAssignmentSheet, type ParsedAssignment } from "@/lib/assignment-workbook";
+import { parseAssignmentJson, parseAssignmentSheet, type ParsedAssignment } from "@/lib/assignment-workbook";
 import { readXlsxSheet } from "@/lib/xlsx-sheet";
 
 function isNextControlFlow(error: unknown) {
@@ -639,6 +639,20 @@ export async function saveAssignmentTestAction(
   }
 }
 
+async function readAssignmentImport(
+  file: FormDataEntryValue | null,
+): Promise<{ error: string } | { errors: string[]; assignments: ParsedAssignment[] }> {
+  if (!(file instanceof File) || file.size === 0) return { error: "Нужен файл Excel .xlsx или JSON" };
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".json")) return parseAssignmentJson(await file.text());
+  if (!name.endsWith(".xlsx")) return { error: "Нужен файл Excel .xlsx или JSON" };
+  try {
+    return parseAssignmentSheet(readXlsxSheet(Buffer.from(await file.arrayBuffer())));
+  } catch {
+    return { error: "Это не файл Excel" };
+  }
+}
+
 export async function importAssignmentsAction(
   _prev: ActionResult,
   formData: FormData,
@@ -648,16 +662,8 @@ export async function importAssignmentsAction(
     const actor = await requireEmployee();
     if (!actor.isAdmin) throw new InvariantError("Загрузку заданий выполняет админ");
     const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0 || !file.name.toLowerCase().endsWith(".xlsx")) {
-      throw new InvariantError("Нужен файл Excel .xlsx");
-    }
-    let grid: string[][];
-    try {
-      grid = readXlsxSheet(Buffer.from(await file.arrayBuffer()));
-    } catch {
-      return { error: "Это не файл Excel" };
-    }
-    const parsed = parseAssignmentSheet(grid);
+    const parsed = await readAssignmentImport(file);
+    if ("error" in parsed) return { error: parsed.error };
     const competencies = new Map(listCompetencies().map((item) => [item.id, item]));
     const catalog = listIdpAssignments();
     const errors = [...parsed.errors];
