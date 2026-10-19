@@ -18,6 +18,10 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+function sameFile(left: string, right: string) {
+  return process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
+}
+
 function readJson(file: string): unknown {
   const text = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");
   try {
@@ -43,10 +47,12 @@ function main() {
   if (args.length !== 2 || args[0] === "--help") fail(usage);
   const [input, output] = args;
   if (!input || !output) fail(usage);
-  const parsed = parseAssignmentJson(fs.readFileSync(path.resolve(input), "utf8"));
+  const source = path.resolve(input);
+  const target = path.resolve(output);
+  if (sameFile(source, target)) fail("Входной и выходной файл — один путь. Укажите другой файл книги.");
+  const parsed = parseAssignmentJson(fs.readFileSync(source, "utf8"));
   if (parsed.errors.length > 0) fail(parsed.errors.join("\n"));
   const rows = assignmentSheetRows(parsed.assignments);
-  const target = path.resolve(output);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, writeXlsxSheet(rows));
   const optionRows = rows.length - 1;

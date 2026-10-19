@@ -320,6 +320,29 @@ test("колонка уровня записывает 1–3, пустая яч�
   await page.goto(card);
   await expect(page.getByLabel(/^Уровень/)).toHaveValue("3");
 
+  const mixed = `Смешанный уровень ${STAMP}`;
+  await send(
+    writeXlsxSheet([
+      header,
+      [CMP, mixed, L1, V1, "Вопрос уровня", "Да", "да", ""],
+      [CMP, mixed, L1, V1, "Вопрос уровня", "Нет", "нет", "2"],
+    ]),
+  );
+  await expect(uploadForm(page).getByRole("status")).toContainText("Загружено заданий: 1.");
+  await page.getByRole("link", { name: mixed, exact: true }).click();
+  await expect(page.getByLabel(/^Уровень/)).toHaveValue("2");
+
+  await send(
+    writeXlsxSheet([
+      header,
+      [CMP, mixed, L1, V1, "Вопрос уровня", "Да", "да", "2"],
+      [CMP, mixed, L1, V1, "Вопрос уровня", "Нет", "нет", "3"],
+    ]),
+  );
+  await expect(uploadForm(page).getByRole("alert")).toContainText("другой уровень");
+  await page.getByRole("link", { name: mixed, exact: true }).click();
+  await expect(page.getByLabel(/^Уровень/)).toHaveValue("2");
+
   const bad = `Плохой уровень ${STAMP}`;
   await send(
     writeXlsxSheet([

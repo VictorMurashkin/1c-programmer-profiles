@@ -118,8 +118,11 @@ export function parseAssignmentSheet(grid: string[][]): { errors: string[]; assi
       if (row.verifyText && row.verifyText !== existing.verifyText) {
         errors.push(`Строка ${row.row}: у задания «${existing.name}» другой текст «проверить»`);
       }
-      if (row.levelProvided && row.level !== existing.level) {
-        errors.push(`Строка ${row.row}: у задания «${existing.name}» другой уровень`);
+      if (row.level != null) {
+        if (existing.level == null) existing.level = row.level;
+        else if (row.level !== existing.level) {
+          errors.push(`Строка ${row.row}: у задания «${existing.name}» другой уровень`);
+        }
       }
     }
     const group = groups.get(key);
