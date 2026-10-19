@@ -10,6 +10,31 @@ async function competencyNames(page: Page, title: string) {
   return group(page, title).locator("tr[data-change] td:first-child").allInnerTexts();
 }
 
+test("над списками нет букв A и B", async ({ page }) => {
+  await page.goto("/compare");
+  const form = page.locator("form", { has: page.getByRole("button", { name: "Сравнить" }) });
+  await expect(form.getByLabel(/^Первая должность/)).toBeVisible();
+  await expect(form.getByLabel(/^Вторая должность/)).toBeVisible();
+  await expect(form.getByRole("button", { name: "Сравнить" })).toBeVisible();
+  await expect(form.getByText("A", { exact: true })).toHaveCount(0);
+  await expect(form.getByText("B", { exact: true })).toHaveCount(0);
+});
+
+test("сравнение по кнопке подписывает колонки названиями должностей", async ({ page }) => {
+  await page.goto("/compare");
+  const form = page.locator("form", { has: page.getByRole("button", { name: "Сравнить" }) });
+  await form.getByLabel(/^Первая должность/).selectOption("junior");
+  await form.getByLabel(/^Вторая должность/).selectOption("programmer");
+  await form.getByRole("button", { name: "Сравнить" }).click();
+  await expect(page).toHaveURL(/[?&]a=junior(?:&|$)/);
+  await expect(page).toHaveURL(/[?&]b=programmer(?:&|$)/);
+  const headers = page.locator("table.compare-table thead th");
+  await expect(headers.nth(1)).toHaveText("Младший программист");
+  await expect(headers.nth(2)).toHaveText("Программист");
+  await expect(page.locator("table.compare-table thead").getByText("A", { exact: true })).toHaveCount(0);
+  await expect(page.locator("table.compare-table thead").getByText("B", { exact: true })).toHaveCount(0);
+});
+
 test("сравнение разбито на три группы профиля в том же порядке", async ({ page }) => {
   await page.goto("/compare?a=junior&b=programmer");
   await expect(page.locator("table.compare-table")).toHaveCount(1);

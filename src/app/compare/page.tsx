@@ -45,7 +45,7 @@ export default async function ComparePage({
       </div>
       <form className="panel panel-pad flex flex-wrap items-end gap-4 text-sm" method="get">
         <label className="lbl">
-          A
+          Первая должность
           <select name="a" defaultValue={a} className="field">
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
@@ -55,7 +55,7 @@ export default async function ComparePage({
           </select>
         </label>
         <label className="lbl">
-          B
+          Вторая должность
           <select name="b" defaultValue={b} className="field">
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
