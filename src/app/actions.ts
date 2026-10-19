@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
-import { getDb, now, retryIfClosed } from "@/db";
+import { getDb, getSqlite, now, retryIfClosed } from "@/db";
 import {
   competencies,
   competencyLinks,
@@ -25,6 +25,8 @@ import {
   assertTypeChangeAllowed,
 } from "@/lib/invariants";
 import { getCompetency } from "@/lib/queries";
+import { parseMaterialJson, parseMaterialSheet } from "@/lib/material-workbook";
+import { readXlsxSheet } from "@/lib/xlsx-sheet";
 import type { ActionResult } from "@/lib/action-result";
 
 function revalidateCompetencyAdmin(id?: string) {
@@ -265,6 +267,90 @@ export async function addCompetencyLinkAction(
     return null;
   } catch (error) {
     if (retryIfClosed(error, retried)) return addCompetencyLinkAction(_prev, formData, true);
+    return asActionError(error);
+  }
+}
+
+async function readMaterialImport(
+  file: FormDataEntryValue | null,
+): Promise<{ error: string } | ReturnType<typeof parseMaterialSheet>> {
+  if (!(file instanceof File) || file.size === 0) return { error: "Нужен файл Excel .xlsx или JSON" };
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".json")) return parseMaterialJson(await file.text());
+  if (!name.endsWith(".xlsx")) return { error: "Нужен файл Excel .xlsx или JSON" };
+  try {
+    return parseMaterialSheet(readXlsxSheet(Buffer.from(await file.arrayBuffer())));
+  } catch {
+    return { error: "Это не файл Excel" };
+  }
+}
+
+export async function importCompetencyLinksAction(
+  _prev: ActionResult,
+  formData: FormData,
+  retried = false,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const file = formData.get("file");
+    const parsed = await readMaterialImport(file);
+    if ("error" in parsed) return { error: parsed.error };
+    const db = getDb();
+    const known = new Set(db.select({ id: competencies.id }).from(competencies).all().map((row) => row.id));
+    const errors = [...parsed.errors];
+    for (const item of parsed.materials) {
+      if (!known.has(item.competencyId)) errors.push(`Неизвестная компетенция «${item.competencyId}»`);
+    }
+    if (errors.length > 0) return { error: errors.join("\n") };
+
+    const counts = getSqlite()
+      .transaction((): { added: number; updated: number; kept: number; touched: string[] } => {
+        const existing = db.select().from(competencyLinks).all();
+        const byKey = new Map(existing.map((link) => [`${link.competencyId}\0${link.url}`, link]));
+        const nextOrder = new Map<string, number>();
+        for (const link of existing) {
+          nextOrder.set(link.competencyId, Math.max(nextOrder.get(link.competencyId) ?? -1, link.sortOrder));
+        }
+        let added = 0;
+        let updated = 0;
+        let kept = 0;
+        const touched = new Set<string>();
+        const t = now();
+        for (const item of parsed.materials) {
+          const key = `${item.competencyId}\0${item.url}`;
+          const current = byKey.get(key);
+          if (current) {
+            if (current.title === item.title && current.kind === item.kind) {
+              kept += 1;
+              continue;
+            }
+            db.update(competencyLinks)
+              .set({ title: item.title, kind: item.kind, updatedAt: t })
+              .where(eq(competencyLinks.id, current.id))
+              .run();
+            updated += 1;
+            touched.add(item.competencyId);
+            continue;
+          }
+          const sortOrder = (nextOrder.get(item.competencyId) ?? -1) + 1;
+          nextOrder.set(item.competencyId, sortOrder);
+          db.insert(competencyLinks)
+            .values({ competencyId: item.competencyId, kind: item.kind, title: item.title, url: item.url, sortOrder, updatedAt: t })
+            .run();
+          added += 1;
+          touched.add(item.competencyId);
+        }
+        return { added, updated, kept, touched: [...touched] };
+      })
+      .deferred(null) as { added: number; updated: number; kept: number; touched: string[] };
+    for (const id of counts.touched) revalidateCompetencyAdmin(id);
+    if (counts.touched.length === 0) revalidateCompetencyAdmin();
+    const parts = [`Добавлено ссылок: ${counts.added}.`];
+    if (counts.updated > 0) parts.push(`Обновлено: ${counts.updated}.`);
+    if (counts.kept > 0) parts.push(`Уже были: ${counts.kept}.`);
+    return { notice: parts.join(" ") };
+  } catch (error) {
+    if (retryIfClosed(error, retried)) return importCompetencyLinksAction(_prev, formData, true);
     return asActionError(error);
   }
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { competencyTypeChip, competencyTypeLabel } from "@/components/CompetencyFields";
+import { MaterialImportForm } from "@/components/MaterialImportForm";
 import { isAdmin } from "@/lib/auth";
 import { listCompetencies } from "@/lib/queries";
 
@@ -21,6 +22,7 @@ export default async function CompetenciesPage() {
           Новая компетенция
         </a>
       </div>
+      <MaterialImportForm />
       <ul className="panel">
         {items.map((item) => (
           <li key={item.id} className="list-row">
