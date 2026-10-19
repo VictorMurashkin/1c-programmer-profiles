@@ -63,6 +63,53 @@ export function materialSheetRows(materials: ParsedMaterial[]): string[][] {
   ];
 }
 
+const JSON_KINDS = new Set<CompetencyLinkKind>(["its", "training", "video"]);
+
+/** Тот же состав, что у книги: массив или объект с полем `materials`. */
+export function parseMaterialJson(text: string): { errors: string[]; materials: ParsedMaterial[] } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text.replace(/^\uFEFF/, "")) as unknown;
+  } catch {
+    return { errors: ["Не разобрать JSON"], materials: [] };
+  }
+  const list = Array.isArray(raw) ? raw : isRecord(raw) && Array.isArray(raw.materials) ? raw.materials : null;
+  if (!list) return { errors: ["Нужен JSON-массив или объект с полем materials"], materials: [] };
+  if (list.length === 0) return { errors: ["В файле нет материалов"], materials: [] };
+  const errors: string[] = [];
+  const materials: ParsedMaterial[] = [];
+  list.forEach((item, index) => {
+    if (!isRecord(item)) {
+      errors.push(`Материал ${index + 1}: нужен объект`);
+      return;
+    }
+    const competencyId = jsonText(item.competencyId, `Материал ${index + 1}: нужен competencyId`, errors);
+    const title = jsonText(item.title, `Материал ${index + 1}: нужно название`, errors);
+    const url = jsonText(item.url, `Материал ${index + 1}: нужен адрес`, errors);
+    const kind = item.kind;
+    if (typeof kind !== "string" || !JSON_KINDS.has(kind as CompetencyLinkKind)) {
+      errors.push(`Материал ${index + 1}: kind — its, training или video`);
+      return;
+    }
+    if (!competencyId || !title || !url) return;
+    materials.push({ competencyId, kind: kind as CompetencyLinkKind, title, url });
+  });
+  if (errors.length > 0) return { errors, materials: [] };
+  return parseMaterialSheet(materialSheetRows(materials));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function jsonText(value: unknown, label: string, errors: string[]): string | null {
+  if (typeof value !== "string" || value.trim() === "") {
+    errors.push(label);
+    return null;
+  }
+  return value.trim();
+}
+
 function isHttpUrl(raw: string) {
   const protocol = URL.canParse(raw) ? new URL(raw).protocol : "";
   return protocol === "http:" || protocol === "https:";

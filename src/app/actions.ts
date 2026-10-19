@@ -25,7 +25,7 @@ import {
   assertTypeChangeAllowed,
 } from "@/lib/invariants";
 import { getCompetency } from "@/lib/queries";
-import { parseMaterialSheet } from "@/lib/material-workbook";
+import { parseMaterialJson, parseMaterialSheet } from "@/lib/material-workbook";
 import { readXlsxSheet } from "@/lib/xlsx-sheet";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -271,6 +271,20 @@ export async function addCompetencyLinkAction(
   }
 }
 
+async function readMaterialImport(
+  file: FormDataEntryValue | null,
+): Promise<{ error: string } | ReturnType<typeof parseMaterialSheet>> {
+  if (!(file instanceof File) || file.size === 0) return { error: "Нужен файл Excel .xlsx или JSON" };
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".json")) return parseMaterialJson(await file.text());
+  if (!name.endsWith(".xlsx")) return { error: "Нужен файл Excel .xlsx или JSON" };
+  try {
+    return parseMaterialSheet(readXlsxSheet(Buffer.from(await file.arrayBuffer())));
+  } catch {
+    return { error: "Это не файл Excel" };
+  }
+}
+
 export async function importCompetencyLinksAction(
   _prev: ActionResult,
   formData: FormData,
@@ -279,16 +293,8 @@ export async function importCompetencyLinksAction(
   try {
     await requireAdmin();
     const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0 || !file.name.toLowerCase().endsWith(".xlsx")) {
-      throw new InvariantError("Нужен файл Excel .xlsx");
-    }
-    let grid: string[][];
-    try {
-      grid = readXlsxSheet(Buffer.from(await file.arrayBuffer()));
-    } catch {
-      return { error: "Это не файл Excel" };
-    }
-    const parsed = parseMaterialSheet(grid);
+    const parsed = await readMaterialImport(file);
+    if ("error" in parsed) return { error: parsed.error };
     const db = getDb();
     const known = new Set(db.select({ id: competencies.id }).from(competencies).all().map((row) => row.id));
     const errors = [...parsed.errors];

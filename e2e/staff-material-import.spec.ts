@@ -52,7 +52,7 @@ function uploadForm(page: Page) {
 
 async function upload(page: Page, rows: string[][]) {
   await page.goto("/admin/competencies");
-  await uploadForm(page).getByLabel("Файл Excel").setInputFiles({
+  await uploadForm(page).getByLabel("Файл", { exact: true }).setInputFiles({
     name: "materials.xlsx",
     mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     buffer: book(rows),
@@ -136,4 +136,43 @@ test("не админ не открывает загрузку материал�
   await page.goto("/admin/competencies");
   await expect(page).toHaveURL(/\/(login|me)$/);
   await expect(uploadForm(page)).toHaveCount(0);
+});
+
+test("json добавляет ссылку, битый json ничего не пишет", async ({ page }) => {
+  const title = `Из json ${STAMP}`;
+  const url = `https://example.org/json/${STAMP}`;
+  await login(page);
+  await page.goto("/admin/competencies");
+  await uploadForm(page).getByLabel("Файл", { exact: true }).setInputFiles({
+    name: "materials.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        materials: [{ competencyId: CMP, kind: "training", title, url }],
+      }),
+    ),
+  });
+  const done = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("/admin/competencies"),
+  );
+  await uploadForm(page).getByRole("button", { name: "Загрузить" }).click();
+  await done;
+  await expect(uploadForm(page).getByRole("status")).toContainText("Добавлено ссылок: 1.");
+  await page.goto(`/admin/competencies/${CMP}`);
+  await expect(page.getByRole("link", { name: title })).toHaveAttribute("href", url);
+
+  await page.goto("/admin/competencies");
+  await uploadForm(page).getByLabel("Файл", { exact: true }).setInputFiles({
+    name: "broken.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{"),
+  });
+  const failed = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().includes("/admin/competencies"),
+  );
+  await uploadForm(page).getByRole("button", { name: "Загрузить" }).click();
+  await failed;
+  await expect(uploadForm(page).getByRole("alert")).toContainText("Не разобрать JSON");
+  await page.goto(`/admin/competencies/${CMP}`);
+  await expect(page.getByRole("link", { name: title })).toHaveCount(1);
 });
