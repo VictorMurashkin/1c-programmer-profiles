@@ -46,7 +46,7 @@ reviews:
         Если меняется seed/data.json, в ревью напомнить, что локально нужен npm run db:seed. На живой базе сервера db:seed не запускать: команда удаляет должности, компетенции и профили.
     - path: "scripts/**"
       instructions: |
-        scripts/update-server.ps1 обновляет уже выложенный сайт. Не затирать .env.local и папку data. Не добавлять вызов npm run db:seed. Служба — ProfilesNext, каталог — C:\apps\programming-profiles.
+        scripts/update-server.ps1 обновляет уже выложенный сайт. Не затирать .env.local и папку data. Не добавлять вызов npm run db:seed. Ключ -SyncCatalog может вызывать npm run db:sync-catalog: он перезаписывает только компетенции и профили. Служба — ProfilesNext, каталог — C:\apps\programming-profiles.
         В .ps1 с кириллицей нужна кодировка UTF-8 с BOM, иначе Windows PowerShell 5.1 ломает строки.
     - path: "docs/**"
       instructions: |

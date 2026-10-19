@@ -238,7 +238,7 @@ Start-Service ProfilesNext
 powershell -ExecutionPolicy Bypass -File C:\apps\programming-profiles\scripts\update-server.ps1
 ```
 
-Скрипт останавливает службу `ProfilesNext`, подтягивает изменившиеся файлы, собирает сайт и запускает службу. Файл `.env.local` и папку `data` он не трогает. `npm run db:seed` на живой базе не запускать.
+Скрипт останавливает службу `ProfilesNext`, подтягивает изменившиеся файлы, собирает сайт и запускает службу. Файл `.env.local` и папку `data` он не трогает. `npm run db:seed` на живой базе не запускать. Ключ `-SyncCatalog` перезаписывает только компетенции и профили из `seed/data.json`; сотрудники и планы остаются.
 
 ## Если что-то пошло не так
 
