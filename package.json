@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "verify": "tsx scripts/verify.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "db:sync-catalog": "tsx scripts/sync-catalog.ts",
     "check:seed": "tsx scripts/check-seed.ts",
     "db:snapshot": "tsx scripts/db-snapshot.ts",
     "db:upgrade-base": "tsx scripts/upgrade-base.ts",

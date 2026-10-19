@@ -2,7 +2,6 @@ import { ActionForm } from "@/components/ActionForm";
 import { AddIdpItemForm } from "@/components/AddIdpItemForm";
 import { IdpItemEdit } from "@/components/IdpItemEdit";
 import { IdpItemStatus } from "@/components/IdpItemStatus";
-import { CompetencyLinks } from "@/components/CompetencyLinks";
 import {
   acceptIdpItemAction,
   cancelIdpAction,
@@ -146,14 +145,26 @@ export function IdpBlock({
             </ActionForm>
           </div>
         ) : null}
-        {groups.map((group) => (
+        {groups.map((group) => {
+          const materialCount = (links.get(group.competencyId) ?? []).length;
+          const materialHref = actor.isAdmin
+            ? `/admin/competencies/${encodeURIComponent(group.competencyId)}`
+            : `/competencies/${encodeURIComponent(group.competencyId)}`;
+          return (
           <div key={group.competencyId} className="space-y-2">
-            <h3 className="section-title mb-0">
-              {group.name}
-              {group.requiredLevel != null ? (
-                <span className="muted font-normal"> · уровень {group.requiredLevel}</span>
+            <h3 className="section-title mb-0 flex flex-wrap items-baseline gap-2">
+              <span>
+                {group.name}
+                {group.requiredLevel != null ? (
+                  <span className="muted font-normal"> · уровень {group.requiredLevel}</span>
+                ) : null}
+                <span className="chip ml-2">{group.confirmed ? "компетенция подтверждена" : "не подтверждена"}</span>
+              </span>
+              {materialCount > 0 ? (
+                <a className="link-accent ml-auto text-sm font-normal" href={materialHref}>
+                  Материалы
+                </a>
               ) : null}
-              <span className="chip ml-2">{group.confirmed ? "компетенция подтверждена" : "не подтверждена"}</span>
             </h3>
             <div className="idp-table-scroll">
             <table className="idp-table">
@@ -173,6 +184,9 @@ export function IdpBlock({
                 {group.rows.map((item) => {
                   const acceptedRow = item.acceptedAt != null;
                   const canTickRow = tick && !acceptedRow;
+                  const questionCount = (prompts.get(item.id) ?? []).length;
+                  const attemptCount = attempts.get(item.id)?.count ?? 0;
+                  const canTake = actor.id === idp.employeeId && open && !acceptedRow && questionCount > 0;
                   return (
                     <tr key={item.id}>
                       <IdpItemEdit
@@ -183,17 +197,17 @@ export function IdpBlock({
                         verifyText={item.verifyText}
                         dueOn={item.dueOn}
                         manage={manage}
-                        learnExtra={<CompetencyLinks links={links.get(group.competencyId) ?? []} />}
+                        learnExtra={null}
                         test={
                           <>
-                            {(prompts.get(item.id) ?? []).length === 0 ? <p className="muted">нет</p> : null}
-                            {(attempts.get(item.id)?.count ?? 0) > 0 ? (
+                            {questionCount === 0 ? <p className="muted">нет</p> : null}
+                            {attemptCount > 0 ? (
                               <p className="text-sm">
-                                Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток{" "}
-                                {attempts.get(item.id)?.count}
+                                Итог теста: {attempts.get(item.id)?.passed ? "сдан" : "не сдан"}, попыток {attemptCount}
                               </p>
                             ) : null}
-                            {actor.id === idp.employeeId && open && !acceptedRow && (prompts.get(item.id)?.length ?? 0) > 0 ? (
+                            {questionCount > 0 && attemptCount === 0 && !canTake ? <p className="text-sm">Тест есть</p> : null}
+                            {canTake ? (
                               <p className="mt-2">
                                 <a className="link-accent" href={`/idps/${idp.id}/items/${item.id}`}>
                                   Сдать тест
@@ -240,7 +254,8 @@ export function IdpBlock({
             </table>
             </div>
           </div>
-        ))}
+          );
+        })}
         {items.length === 0 ? (
           <p className="muted text-sm">
             Заданий пока нет. ИПР станет выполненным, когда добавите хотя бы одно и примете все.

@@ -106,6 +106,7 @@ test("задание с тестом копирует вопросы в стро
   const catalog = addAgain.getByLabel(/^Из справочника/);
   await catalog.selectOption({ value: (await catalog.locator("option", { hasText: WITH_TEST }).getAttribute("value")) ?? "" });
   await addAgain.getByRole("button", { name: "Добавить" }).click();
+  await expect(page.getByRole("row", { name: new RegExp(WITH_TEST) }).getByText("Тест есть")).toBeVisible();
 
   await login(page, STAFF);
   await page.goto(idpPath);

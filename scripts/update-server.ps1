@@ -1,12 +1,14 @@
 # Stop ProfilesNext, snapshot the database, pull main, check the migration, rebuild, start the service.
 # IIS keeps proxying; this script updates the Node app folder, not the IIS site folder.
-# The live database is never modified. Restoring a snapshot is a manual step, see docs/update-server.md.
+# The live database is modified only with -SyncCatalog: competencies and profiles are rewritten from seed/data.json.
+# Employees, IDPs and assignments stay. Restoring a snapshot is a manual step, see docs/update-server.md.
 #Requires -RunAsAdministrator
 
 param(
   [string]$AppDir = "",
   [string]$ServiceName = "ProfilesNext",
-  [string]$BackupDir = "C:\apps\programming-profiles-backups"
+  [string]$BackupDir = "C:\apps\programming-profiles-backups",
+  [switch]$SyncCatalog
 )
 
 $ErrorActionPreference = "Stop"
@@ -215,6 +217,14 @@ if ($LASTEXITCODE -ne 0) {
 
 if (-not (Test-Path $envFile)) {
   Restore-Previous ".env.local"
+}
+
+if ($SyncCatalog) {
+  Write-Host "Sync catalog from seed/data.json"
+  & npm.cmd run db:sync-catalog -- $db
+  if ($LASTEXITCODE -ne 0) {
+    Restore-Previous "sync-catalog"
+  }
 }
 
 if (-not (Start-AppService)) {

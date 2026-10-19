@@ -151,6 +151,14 @@ test("админ заводит сотрудника и ИПР с задание
   await add.getByLabel("Проверить").fill("Тест проходит");
   await add.getByRole("button", { name: "Добавить" }).click();
   await expect(page.getByRole("heading", { level: 3, name: new RegExp(COMPETENCY.name) })).toBeVisible();
+  const group = page.locator("div.space-y-2", {
+    has: page.getByRole("heading", { level: 3, name: new RegExp(`^${COMPETENCY.name}`) }),
+  });
+  await expect(group.getByRole("link", { name: ITS.title })).toHaveCount(0);
+  await expect(group.getByRole("link", { name: "Материалы" })).toHaveAttribute(
+    "href",
+    `/admin/competencies/${COMPETENCY.id}`,
+  );
 });
 
 test("вошедший сотрудник видит ссылку в карточке навыка и в ИПР", async ({ page }) => {
@@ -163,8 +171,13 @@ test("вошедший сотрудник видит ссылку в карто�
 
   await page.goto("/me");
   await page.getByRole("link", { name: /^Активный план/ }).click();
-  await expect(page.getByRole("heading", { level: 3, name: new RegExp(COMPETENCY.name) })).toBeVisible();
-  await expect(page.getByRole("link", { name: ITS.title })).toHaveAttribute("href", ITS.url);
+  const group = page.locator("div.space-y-2", {
+    has: page.getByRole("heading", { level: 3, name: new RegExp(`^${COMPETENCY.name}`) }),
+  });
+  await expect(group.getByRole("link", { name: ITS.title })).toHaveCount(0);
+  await group.getByRole("link", { name: "Материалы" }).click();
+  await expect(page).toHaveURL(new RegExp(`/competencies/${COMPETENCY.id}$`));
+  await expect(materials(page).getByRole("link", { name: ITS.title })).toHaveAttribute("href", ITS.url);
 });
 
 test("гость ссылок не видит", async ({ page }) => {
@@ -173,4 +186,7 @@ test("гость ссылок не видит", async ({ page }) => {
   await expect(page.getByText(COMPETENCY.name, { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: ITS.title })).toHaveCount(0);
   await expect(page.getByRole("list", { name: "Материалы" })).toHaveCount(0);
+
+  await page.goto(`/competencies/${COMPETENCY.id}`);
+  await expect(page).toHaveURL(/\/login/);
 });
