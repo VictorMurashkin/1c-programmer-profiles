@@ -15,15 +15,21 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+function sameFile(left: string, right: string) {
+  return process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
+}
+
 function main() {
   const args = process.argv.slice(2);
   if (args.length !== 2 || args[0] === "--help") fail(usage);
   const [input, output] = args;
   if (!input || !output) fail(usage);
-  const parsed = parseMaterialJson(fs.readFileSync(path.resolve(input), "utf8"));
+  const source = path.resolve(input);
+  const target = path.resolve(output);
+  if (sameFile(source, target)) fail("Входной и выходной файл — один путь. Укажите другой файл книги.");
+  const parsed = parseMaterialJson(fs.readFileSync(source, "utf8"));
   if (parsed.errors.length > 0) fail(parsed.errors.join("\n"));
   const rows = materialSheetRows(parsed.materials);
-  const target = path.resolve(output);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, writeXlsxSheet(rows));
   console.log(`Записано материалов: ${parsed.materials.length}. ${target}`);

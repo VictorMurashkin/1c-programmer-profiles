@@ -23,8 +23,8 @@ export function MaterialImportForm() {
           required
         />
       </label>
-      <button className="btn-primary w-fit" type="submit">
-        Загрузить
+      <button className="btn-primary w-fit" type="submit" disabled={pending}>
+        {pending ? "Загружаем…" : "Загрузить"}
       </button>
       {state?.error ? (
         <p className="form-error whitespace-pre-line" role="alert">
@@ -36,7 +36,6 @@ export function MaterialImportForm() {
           {state.notice}
         </p>
       ) : null}
-      {pending ? <p className="muted text-sm">Сохраняем…</p> : null}
     </form>
   );
 }
