@@ -16,7 +16,15 @@ function fail(message: string): never {
 }
 
 function sameFile(left: string, right: string) {
-  return process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
+  const samePath = process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
+  if (samePath) return true;
+  try {
+    const leftStat = fs.statSync(left, { bigint: true });
+    const rightStat = fs.statSync(right, { bigint: true });
+    return leftStat.dev === rightStat.dev && leftStat.ino === rightStat.ino;
+  } catch {
+    return false;
+  }
 }
 
 function main() {
