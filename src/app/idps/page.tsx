@@ -23,8 +23,8 @@ const IDP_STATUS: Record<string, string> = {
 };
 
 function statusChipClass(status: string) {
-  if (status === "completed") return "chip chip-backend";
   if (status === "cancelled") return "chip chip-cloud";
+  if (status === "active" || status === "completed") return "chip chip-backend";
   return "chip";
 }
 

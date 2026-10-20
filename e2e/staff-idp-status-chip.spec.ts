@@ -104,14 +104,13 @@ test("в списке чипы статусов различаются цвет�
   const warning = await tokenColor(page, "--cloud-stroke");
   const muted = await tokenColor(page, "--text-muted");
 
+  expect(activePaint.color).toBe(green);
   expect(donePaint.color).toBe(green);
-  expect(donePaint.color).not.toBe(activePaint.color);
+  expect(activePaint.color).not.toBe(muted);
+  expect(activePaint.color).not.toBe(warning);
   expect(cancelledPaint.color).toBe(warning);
   expect(cancelledPaint.color).not.toBe(activePaint.color);
   expect(cancelledPaint.color).not.toBe(donePaint.color);
-  expect(activePaint.color).toBe(muted);
-  expect(activePaint.color).not.toBe(green);
-  expect(activePaint.color).not.toBe(warning);
 
   const activeRowPaint = await paint(activeRow);
   const doneRowPaint = await paint(doneRow);
