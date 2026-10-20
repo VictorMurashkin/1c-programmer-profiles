@@ -6,14 +6,93 @@ IIS не хранит страницы приложения. В папке са�
 
 Пароли и база обычным обновлением не затираются: `.env.local` и `data` в GitHub не входят. `npm run db:seed` на живой базе не запускать.
 
-## 1. Клонировать репозиторий
+## 1. Поставить Git и забрать репозиторий
 
-На сервере один раз поставить [Git для Windows](https://git-scm.com/download/win) и Node.js 24. PowerShell открыть от имени администратора.
+Скрипт обновления запускается только из папки, в которой есть `.git`, и только если в PowerShell находится команда `git`. Ручная копия файлов без Git для следующих обновлений не подходит: скрипт сразу выходит и службу не останавливает.
+
+Node.js 24 к этому моменту уже должен стоять. Если нет — [docs/deploy-iis.md](deploy-iis.md), шаг 1. PowerShell каждый раз открывать заново после установки программы и всегда от имени администратора.
+
+### Поставить Git
+
+1. Скачать установщик [Git для Windows](https://git-scm.com/download/win) и запустить его на сервере.
+2. В мастере оставить вариант, при котором Git попадает в командную строку. Отдельные инструменты вроде Git Bash для обновления не нужны.
+3. Дождаться окончания, закрыть старое окно PowerShell и открыть новое от администратора.
+4. Проверить:
+
+```powershell
+git --version
+```
+
+Должна напечататься версия. Если команда `git` не находится, установщик не добавил Git в PATH или открыто окно, которое было запущено до установки.
+
+### Если папки приложения ещё нет
 
 ```powershell
 cd C:\apps
 git clone https://github.com/firstBitSportivnaya/1c-programmer-profiles.git programming-profiles
+cd C:\apps\programming-profiles
+git status
 ```
+
+`git status` должен показать ветку `main` и чистую папку. Дальше — раздел 2 этой инструкции: пароли, сборка, служба и сайт IIS.
+
+Если GitHub просит войти, нужен вход учётной записи, которой разрешено читать репозиторий.
+
+### Если приложение уже стоит копией, без Git
+
+Папку службы не затирать поверх. Служба `ProfilesNext` ждёт путь `C:\apps\programming-profiles`. Секреты и база лежат в этой папке и в GitHub их нет: перед заменой папки их надо унести в сторону.
+
+1. Поставить Git, как выше, и убедиться, что `git --version` печатает версию.
+2. Остановить службу, чтобы она не писала базу во время копирования:
+
+```powershell
+Stop-Service ProfilesNext
+```
+
+3. Унести пароли и базу из папки приложения:
+
+```powershell
+New-Item -ItemType Directory -Force -Path C:\apps\programming-profiles-keep
+Copy-Item C:\apps\programming-profiles\.env.local C:\apps\programming-profiles-keep\.env.local
+Copy-Item C:\apps\programming-profiles\data C:\apps\programming-profiles-keep\data -Recurse
+```
+
+4. Освободить путь, который уже прописан в службе, и клонировать репозиторий на это же место:
+
+```powershell
+Rename-Item C:\apps\programming-profiles C:\apps\programming-profiles-old
+cd C:\apps
+git clone https://github.com/firstBitSportivnaya/1c-programmer-profiles.git programming-profiles
+cd C:\apps\programming-profiles
+git status
+```
+
+Ветка должна быть `main`.
+
+5. Вернуть пароли и базу. Папки `data` в клоне ещё нет: её создаёт копирование.
+
+```powershell
+New-Item -ItemType Directory -Force -Path C:\apps\programming-profiles\data
+Copy-Item C:\apps\programming-profiles-keep\.env.local C:\apps\programming-profiles\.env.local
+Copy-Item C:\apps\programming-profiles-keep\data\* C:\apps\programming-profiles\data\ -Force
+```
+
+Если рядом с базой были `profiles.sqlite-wal` и `profiles.sqlite-shm`, они приедут вместе с папкой `data`.
+
+6. Собрать клон и запустить службу:
+
+```powershell
+cd C:\apps\programming-profiles
+npm ci
+npm run build
+Start-Service ProfilesNext
+```
+
+7. Подождать около полминуты. Сайт должен открыться, вход логином сотрудника — пройти. `git status` не должен показывать `.env.local` и файл базы: они в git не входят.
+
+8. Папку `C:\apps\programming-profiles-old` удалить только после этой проверки. `C:\apps\programming-profiles-keep` тоже можно удалить после проверки: там копия учёток и хэшей паролей, её не публиковать и в git не класть.
+
+Дальше файлы на сервер руками не копировать. Обновления — раздел 4.
 
 ## 2. Опубликовать
 
