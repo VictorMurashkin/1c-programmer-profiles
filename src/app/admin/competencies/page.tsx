@@ -8,9 +8,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SECTIONS = [
-  { type: "duty", title: "Обязанности" },
   { type: "professional", title: "Компетенции" },
   { type: "universal", title: "Личные" },
+  { type: "duty", title: "Обязанности" },
 ] as const;
 
 export default async function CompetenciesPage() {
