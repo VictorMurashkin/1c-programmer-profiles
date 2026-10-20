@@ -262,13 +262,7 @@ export function IdpBlock({
           </p>
         ) : null}
         {(manage || reopen) && pool.length > 0 ? (
-          <AddIdpItemForm
-            idpId={idp.id}
-            periodStart={idp.periodStart}
-            periodEnd={idp.periodEnd}
-            pool={pool}
-            catalog={catalog}
-          />
+          <AddIdpItemForm idpId={idp.id} pool={pool} catalog={catalog} />
         ) : null}
         {manage && pool.length === 0 ? (
           <p className="muted text-sm">В пуле нет компетенций. Нажмите «Обновить доступные компетенции».</p>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { deleteIdpItemAction, updateIdpItemAction } from "@/app/idp-actions";
 import { ActionForm } from "@/components/ActionForm";
+import { DateField } from "@/components/DateField";
 
 export function IdpItemEdit({
   itemId,
@@ -68,7 +69,7 @@ export function IdpItemEdit({
       <td>{test}</td>
       <td>
         {open ? (
-          <input className="field" type="date" name="dueOn" form={formId} aria-label="Срок" defaultValue={dueOn ?? ""} />
+          <DateField name="dueOn" ariaLabel="Срок" form={formId} defaultValue={dueOn ?? ""} />
         ) : (
           (dueOn ?? "—")
         )}
