@@ -7,6 +7,12 @@ import { listCompetencies } from "@/lib/queries";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const SECTIONS = [
+  { type: "professional", title: "Компетенции" },
+  { type: "universal", title: "Личные" },
+  { type: "duty", title: "Обязанности" },
+] as const;
+
 export default async function CompetenciesPage() {
   if (!(await isAdmin())) redirect("/admin/login");
   const items = listCompetencies();
@@ -23,22 +29,35 @@ export default async function CompetenciesPage() {
         </a>
       </div>
       <MaterialImportForm />
-      <ul className="panel">
-        {items.map((item) => (
-          <li key={item.id} className="list-row">
-            <div>
-              <a href={`/admin/competencies/${encodeURIComponent(item.id)}`} className="link-accent font-medium">
-                {item.name}
-              </a>
-              {item.parentId ? (
-                <div className="mt-1 text-xs muted">родитель: {nameById.get(item.parentId) ?? item.parentId}</div>
-              ) : null}
-            </div>
-            <span className={competencyTypeChip(item.type)}>{competencyTypeLabel(item.type)}</span>
-          </li>
-        ))}
-        {items.length === 0 ? <li className="list-row muted">Нет компетенций</li> : null}
-      </ul>
+      {SECTIONS.map((section) => {
+        const rows = items.filter((item) => item.type === section.type);
+        return (
+          <section key={section.type} className="space-y-2" aria-labelledby={`competency-group-${section.type}`}>
+            <h2 id={`competency-group-${section.type}`} className="section-title mb-0">
+              {section.title}
+            </h2>
+            {rows.length === 0 ? (
+              <p className="muted text-sm">Нет записей</p>
+            ) : (
+              <ul className="panel">
+                {rows.map((item) => (
+                  <li key={item.id} className="list-row">
+                    <div>
+                      <a href={`/admin/competencies/${encodeURIComponent(item.id)}`} className="link-accent font-medium">
+                        {item.name}
+                      </a>
+                      {item.parentId ? (
+                        <div className="mt-1 text-xs muted">родитель: {nameById.get(item.parentId) ?? item.parentId}</div>
+                      ) : null}
+                    </div>
+                    <span className={competencyTypeChip(item.type)}>{competencyTypeLabel(item.type)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
