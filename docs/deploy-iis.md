@@ -59,13 +59,23 @@ npm -v
 5. Снять галочку **Enable disk cache**. Иначе IIS может запомнить страницу одного пользователя и показать её другому.
 6. Справа нажать **Применить**.
 
-## 4. Скопировать приложение на сервер
+## 4. Забрать приложение с GitHub
 
-Папка на сервере: `C:\apps\programming-profiles`.
+Папка на сервере: `C:\apps\programming-profiles`. Это клон репозитория, не копия файлов с компьютера разработчика. Без Git и скрытой папки `.git` скрипт обновления не запускается.
 
-Скопировать туда проект с компьютера разработчика. Не копировать папки `node_modules` и `.next`: они соберутся на сервере заново. Не копировать `.env.local` с чужого компьютера, если там пароли для разработки. Секреты для сервера задаются отдельно, шаг 6.
+1. Скачать и поставить [Git для Windows](https://git-scm.com/download/win). В мастере оставить вариант, при котором `git` доступен в командной строке.
+2. Закрыть PowerShell и открыть новое окно от администратора.
+3. Проверить `git --version`. Должна напечататься версия.
+4. Клонировать:
 
-Должны лежать как минимум: `package.json`, `package-lock.json`, папка `src`, папка `vendor`, папка `public` (если есть), `next.config.ts`, `tsconfig.json`, `seed`.
+```powershell
+cd C:\apps
+git clone https://github.com/firstBitSportivnaya/1c-programmer-profiles.git programming-profiles
+```
+
+После клона в папке есть `package.json`, `package-lock.json`, `src`, `vendor`, `next.config.ts`, `tsconfig.json`, `seed` и скрытая `.git`. `node_modules` и `.next` не копировать: они соберутся на сервере. Чужой `.env.local` не копировать: пароли сервера задаются на шаге 6.
+
+Если папка уже заполнена старой копией без Git, не клонировать поверх неё. Одноразовый переход — [docs/update-server.md](update-server.md), раздел «Если приложение уже стоит копией, без Git».
 
 ## 5. Собрать приложение
 
@@ -232,7 +242,7 @@ Start-Service ProfilesNext
 
 ## 14. Как обновлять потом
 
-Пошагово: [docs/update-server.md](update-server.md). После появления коммита в GitHub на сервере от администратора:
+Пошагово: [docs/update-server.md](update-server.md). Если на сервере ещё нет Git или в `C:\apps\programming-profiles` нет папки `.git`, сначала одноразовая подготовка из раздела 1 того файла. После появления коммита в GitHub на сервере от администратора:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File C:\apps\programming-profiles\scripts\update-server.ps1
