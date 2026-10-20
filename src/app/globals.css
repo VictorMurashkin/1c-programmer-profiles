@@ -659,6 +659,40 @@ details[open] > .skill-summary::before {
   overflow-x: auto;
 }
 
+.date-field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 9rem;
+}
+
+.date-calendar-open {
+  width: fit-content;
+}
+
+.date-calendar {
+  position: fixed;
+  z-index: 40;
+  width: 16.5rem;
+}
+
+.date-calendar-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.date-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.2rem;
+  margin-top: 0.5rem;
+}
+
+.date-calendar-grid .btn {
+  padding: 0.3rem 0;
+}
+
 .idp-table {
   width: 100%;
   min-width: 60rem;

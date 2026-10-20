@@ -3,20 +3,17 @@
 import { useState } from "react";
 import { addIdpItemAction } from "@/app/idp-actions";
 import { ActionForm } from "@/components/ActionForm";
+import { DateField } from "@/components/DateField";
 
 type PoolRow = { competencyId: string; competencyName: string; requiredLevel: number | null };
 type CatalogRow = { id: string; name: string; competencyId: string; competencyName: string; level: number | null };
 
 export function AddIdpItemForm({
   idpId,
-  periodStart,
-  periodEnd,
   pool,
   catalog,
 }: {
   idpId: string;
-  periodStart: string;
-  periodEnd: string;
   pool: PoolRow[];
   catalog: CatalogRow[];
 }) {
@@ -107,10 +104,7 @@ export function AddIdpItemForm({
         Проверить
         <textarea className="field" name="verifyText" rows={3} />
       </label>
-      <label className="lbl">
-        Срок
-        <input className="field" type="date" name="dueOn" min={periodStart} max={periodEnd} />
-      </label>
+      <DateField label="Срок" name="dueOn" />
       <button className="btn-primary w-fit" type="submit">
         Добавить
       </button>

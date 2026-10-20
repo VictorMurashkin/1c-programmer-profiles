@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
+import { DateField } from "@/components/DateField";
 import { createIdpAction } from "@/app/idp-actions";
 import { getSessionEmployee } from "@/lib/auth";
 import { canManageEmployee } from "@/lib/invariants";
@@ -88,14 +89,8 @@ export default async function IdpsPage({
               ))}
             </select>
           </label>
-          <label className="lbl">
-            Начало
-            <input className="field" type="date" name="periodStart" required />
-          </label>
-          <label className="lbl">
-            Конец
-            <input className="field" type="date" name="periodEnd" required />
-          </label>
+          <DateField label="Начало" name="periodStart" required />
+          <DateField label="Конец" name="periodEnd" required />
           <button className="btn-primary" type="submit">
             Создать
           </button>
