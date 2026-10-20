@@ -22,6 +22,12 @@ const IDP_STATUS: Record<string, string> = {
   cancelled: "отменён",
 };
 
+function statusChipClass(status: string) {
+  if (status === "cancelled") return "chip chip-cloud";
+  if (status === "active" || status === "completed") return "chip chip-backend";
+  return "chip";
+}
+
 export default async function IdpsPage({
   searchParams,
 }: {
@@ -133,7 +139,7 @@ export default async function IdpsPage({
                   {idp.status === "active" ? ` · принято ${progress.accepted} из ${progress.total}` : ""}
                 </div>
               </div>
-              <span className="chip">{IDP_STATUS[idp.status] ?? idp.status}</span>
+              <span className={statusChipClass(idp.status)}>{IDP_STATUS[idp.status] ?? idp.status}</span>
             </li>
           );
         })}
