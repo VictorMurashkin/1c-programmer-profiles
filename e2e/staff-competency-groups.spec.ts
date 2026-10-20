@@ -63,11 +63,11 @@ test("три списка идут по порядку, строка откры�
   await createCompetency(page, PERSONAL_ID, PERSONAL, "universal");
 
   await page.goto("/admin/competencies");
-  const sections = page.locator("section");
+  const sections = page.getByRole("region");
   await expect(sections).toHaveCount(3);
-  await expect(sections.nth(0).getByRole("heading", { level: 2 })).toHaveText("Компетенции");
-  await expect(sections.nth(1).getByRole("heading", { level: 2 })).toHaveText("Личные");
-  await expect(sections.nth(2).getByRole("heading", { level: 2 })).toHaveText("Обязанности");
+  await expect(sections.nth(0)).toHaveAccessibleName("Компетенции");
+  await expect(sections.nth(1)).toHaveAccessibleName("Личные");
+  await expect(sections.nth(2)).toHaveAccessibleName("Обязанности");
 
   const dutyRow = group(page, "Обязанности").locator("li", { has: page.getByRole("link", { name: DUTY, exact: true }) });
   await expect(dutyRow.getByText("Обязанность", { exact: true })).toBeVisible();
