@@ -143,4 +143,4 @@ powershell -ExecutionPolicy Bypass -File C:\apps\programming-profiles\scripts\up
 
 Восстановление базы из копии — вручную, пока служба остановлена. Подставить файл вместо `data\profiles.sqlite` и удалить рядом файлы `profiles.sqlite-wal` и `profiles.sqlite-shm`, если они есть. Затем запустить службу. `scripts/upgrade-base.ts` на рабочей базе не запускать: он добавляет администратора с паролем из репозитория.
 
-Журнал службы — `C:\apps\programming-profiles\logs\node-err.log`. IIS перенастраивать не нужно. После успешного обновления подождать около полминуты и обновить страницу через Ctrl+F5.
+Журнал службы — `C:\apps\programming-profiles\logs\node-err.log`. Обычное обновление `web.config` не трогает. После успешного обновления подождать около полминуты и обновить страницу через Ctrl+F5. Если страницы открываются, а сохранение пишет в журнал `Invalid Server Actions request`, это адрес прокси, не сборка: [docs/deploy-iis.md](deploy-iis.md), шаг 11.

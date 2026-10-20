@@ -195,7 +195,9 @@ Start-Service ProfilesNext
 
 В папке `C:\inetpub\profiles` создать файл `web.config`. Блокнот часто дописывает `.txt`. Проверить в проводнике, что полное имя именно `web.config`.
 
-Вставить:
+Сначала разрешить подмену заголовка, иначе сайт ответит 500. В диспетчере IIS выбрать имя сервера (верхний узел) → **URL Rewrite** → справа **View Server Variables** → **Add** → `HTTP_X_FORWARDED_HOST`.
+
+Затем вставить:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -205,6 +207,9 @@ Start-Service ProfilesNext
       <rules>
         <rule name="ReverseProxyToNext" stopProcessing="true">
           <match url="(.*)" />
+          <serverVariables>
+            <set name="HTTP_X_FORWARDED_HOST" value="{HTTP_HOST}" />
+          </serverVariables>
           <action type="Rewrite" url="http://127.0.0.1:3000/{R:1}" />
         </rule>
       </rules>
@@ -213,7 +218,7 @@ Start-Service ProfilesNext
 </configuration>
 ```
 
-Смысл файла: любой адрес сайта IIS незаметно переписывается на приложение Node на этом же сервере.
+Смысл файла: любой адрес сайта IIS незаметно переписывается на приложение Node на этом же сервере. `{HTTP_HOST}` — адрес из строки браузера, вместе с портом. Без этой подмены IIS сообщает Node свой внутренний адрес `127.0.0.1:3000`. Страницы открываются, а сохранение Next.js отклоняет: в `logs\node-err.log` строка `x-forwarded-host` не совпадает с `origin`, затем `Invalid Server Actions request`. На экране при этом общая «Ошибка» без текста причины. Disk cache в ARR тут ни при чём: он может быть уже выключен.
 
 В диспетчере IIS выбрать сайт `profiles` → в центре **URL Rewrite**. Должно быть одно правило `ReverseProxyToNext`. Если раздела URL Rewrite нет, модуль из шага 3 не установлен.
 
@@ -262,4 +267,5 @@ powershell -ExecutionPolicy Bypass -File C:\apps\programming-profiles\scripts\up
 | Сайт открывается, но стили пустые и кнопки ведут на `127.0.0.1` | В ARR на экране Server Proxy Settings выключена галочка Reverse rewrite host in response headers. Включить её и перезапустить сайт IIS. |
 | Страницы есть, войти нельзя | В `.env.local` пустой `SESSION_SECRET` или слово-заглушка. Исправить файл и выполнить `Restart-Service ProfilesNext`. |
 | Вход есть, сохранение падает | Нет права на запись в папку `data` у учётной записи службы. |
+| Вход есть, на сохранении «Ошибка», в `logs\node-err.log` есть `x-forwarded-host` и `Invalid Server Actions request` | В правиле прокси нет `HTTP_X_FORWARDED_HOST` со значением `{HTTP_HOST}` или переменная не разрешена на уровне сервера. Шаг 11. Приложение заново не собирать. |
 | После обновления старая страница | Службу не перезапустили или браузер держит старый файл. `Restart-Service ProfilesNext` и Ctrl+F5. |
